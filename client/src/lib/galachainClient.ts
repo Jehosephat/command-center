@@ -9,7 +9,6 @@
 import { BrowserConnectClient, TokenApi, GalaChainResponseError } from '@gala-chain/connect'
 import type { TokenBalance, TokenInstanceKey, TokenClassKey, TokenClass } from '@gala-chain/connect'
 import type { TokenAllowance, FetchAllowancesResponse, UserRef, TokenBalanceWithMetadata, FetchBalancesWithTokenMetadataResponse } from '@gala-chain/api'
-import { serialize } from '@gala-chain/api'
 import BigNumber from 'bignumber.js'
 import { useNetworkStore } from '@/stores/network'
 import { GalaChainError, logError } from './galachainErrors'
@@ -61,31 +60,6 @@ function generateUniqueKey(): string {
   const randomBytes = new Uint8Array(32)
   crypto.getRandomValues(randomBytes)
   return btoa(String.fromCharCode(...randomBytes))
-}
-
-/**
- * Sign a DTO using Ethereum personal_sign with the correct GalaChain prefix.
- *
- * GalaChain's verification does:
- *   hash(prefix_in_dto + serialize(dto_without_prefix_signature))
- *
- * MetaMask's personal_sign does:
- *   hash("\u0019Ethereum Signed Message:\n{len}" + message_bytes)
- *
- * So we must:
- *   1. Serialize the DTO (without prefix/signature) to get `data`
- *   2. Set prefix = "\u0019Ethereum Signed Message:\n{data.length}"
- *   3. Call signMessage(data) — MetaMask prepends the same prefix internally
- *   4. Return the DTO with prefix and signature attached
- */
-async function signPersonalDto<T extends object>(
-  client: BrowserConnectClient,
-  dto: T
-): Promise<T & { prefix: string; signature: string }> {
-  const serialized = serialize(dto)
-  const prefix = `\u0019Ethereum Signed Message:\n${serialized.length}`
-  const signature = await client.signMessage(serialized)
-  return { ...dto, prefix, signature }
 }
 
 /**
@@ -335,11 +309,10 @@ export async function transfer(
     uniqueKey: generateUniqueKey(),
   }
 
-  const signedDto = await signPersonalDto(client, dto)
-  logRequest('TransferToken', signedDto)
+  logRequest('TransferToken', dto)
 
   return executeSignedApiCall(
-    () => tokenApi.TransferToken(signedDto),
+    () => tokenApi.TransferToken(dto),
     'TransferToken'
   )
 }
@@ -367,11 +340,10 @@ export async function mint(
     uniqueKey: generateUniqueKey(),
   }
 
-  const signedDto = await signPersonalDto(client, dto)
-  logRequest('MintToken', signedDto)
+  logRequest('MintToken', dto)
 
   return executeSignedApiCall(
-    () => tokenApi.MintToken(signedDto),
+    () => tokenApi.MintToken(dto),
     'MintToken'
   )
 }
@@ -402,11 +374,10 @@ export async function burn(
     uniqueKey: generateUniqueKey(),
   }
 
-  const signedDto = await signPersonalDto(client, dto)
-  logRequest('BurnTokens', signedDto)
+  logRequest('BurnTokens', dto)
 
   return executeSignedApiCall(
-    () => tokenApi.BurnTokens(signedDto),
+    () => tokenApi.BurnTokens(dto),
     'BurnTokens'
   )
 }
@@ -482,12 +453,11 @@ export async function createCollection(
     ...(input.authorities && input.authorities.length > 0 && { authorities: input.authorities }),
   }
 
-  const signedDto = await signPersonalDto(client, dto)
-  logRequest('CreateTokenClass', signedDto)
+  logRequest('CreateTokenClass', dto)
 
   return executeSignedApiCall(
     // Cast to any then to the expected type since SDK types are stricter than API
-    () => tokenApi.CreateTokenClass(signedDto as Parameters<typeof tokenApi.CreateTokenClass>[0]),
+    () => tokenApi.CreateTokenClass(dto as Parameters<typeof tokenApi.CreateTokenClass>[0]),
     'CreateTokenClass'
   )
 }
@@ -584,15 +554,14 @@ export async function grantNftCollectionAuthorization(
     uniqueKey: generateUniqueKey(),
   }
 
-  const signedDto = await signPersonalDto(client, dto)
-  logRequest('GrantNftCollectionAuthorization', signedDto)
+  logRequest('GrantNftCollectionAuthorization', dto)
 
   // Use client.submit() directly since this method isn't in TokenApi
   return executeSignedApiCall(
     () => client.submit({
       url: getTokenApiUrl(),
       method: 'GrantNftCollectionAuthorization',
-      payload: signedDto,
+      payload: dto,
       sign: true,
     }),
     'GrantNftCollectionAuthorization'
@@ -630,15 +599,14 @@ export async function createNftCollection(
     }),
   }
 
-  const signedDto = await signPersonalDto(client, dto)
-  logRequest('CreateNftCollection', signedDto)
+  logRequest('CreateNftCollection', dto)
 
   // Use client.submit() directly since this method isn't in TokenApi
   return executeSignedApiCall(
-    () => client.submit<TokenClass, typeof signedDto>({
+    () => client.submit<TokenClass, typeof dto>({
       url: getTokenApiUrl(),
       method: 'CreateNftCollection',
-      payload: signedDto,
+      payload: dto,
       sign: true,
     }),
     'CreateNftCollection'

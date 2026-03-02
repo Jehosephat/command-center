@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useStorage } from '@vueuse/core'
 import { BrowserConnectClient } from '@gala-chain/connect'
+import { signatures } from '@gala-chain/api'
 import type { WalletState, WalletConnectionStatus } from '@shared/types/wallet'
 
 /**
@@ -63,6 +64,17 @@ export const useWalletStore = defineStore('wallet', () => {
     try {
       // Create a new BrowserConnectClient instance
       client = new BrowserConnectClient()
+
+      // Fix: override calculatePersonalSignPrefix to use the correct data length.
+      // The SDK's implementation converges on (prefix.length + data.length) because
+      // it adds the prefix field to the DTO and re-calls getPayloadToSign, which
+      // prepends the prefix value to its return string. The correct value per the
+      // GalaChain SDK spec (eth.spec.ts#L376) is just data.length.
+      ;(client as any).calculatePersonalSignPrefix = (payload: Record<string, unknown>) => {
+        const { prefix: _prefix, ...payloadData } = payload
+        const dataLength = signatures.getPayloadToSign(payloadData as object).length
+        return `\u0019Ethereum Signed Message:\n${dataLength}`
+      }
 
       // Listen for account changes
       client.on('accountsChanged', handleAccountsChanged)
