@@ -65,18 +65,10 @@ export const useWalletStore = defineStore('wallet', () => {
       // Create a new BrowserConnectClient instance
       client = new BrowserConnectClient()
 
-      // Override sign() to use personal_sign correctly.
-      //
-      // The SDK default (SIGN_TYPED_DATA) submits domain+types fields in the DTO,
-      // causing GalaChain's server to use EIP-712 verification. But GalaChain's
-      // gateway authenticates via personal_sign (as shown in eth.spec.ts#L376).
-      //
-      // The SDK's PERSONAL_SIGN path is also wrong — it signs serialize(prefixedPayload),
-      // which embeds the prefix field in the JSON. The server verifies
-      // keccak256(prefix + serialize(plain_without_prefix)), so the signed data
-      // must be serialize(plain) only.
+      // Override sign() to fix two bugs in BrowserConnectClient v2.7.1:
+      // 1. calculatePersonalSignPrefix converges on wrong length (prefix.length + data.length)
+      // 2. Default SIGN_TYPED_DATA adds domain/types triggering EIP-712 verification instead of personal_sign
       ;(client as any).sign = async (_method: string, payload: Record<string, unknown>) => {
-        // getPayloadToSign strips signature/prefix/multisig/trace and returns serialize(plain)
         const data = signatures.getPayloadToSign(payload as object)
         const prefix = `\u0019Ethereum Signed Message:\n${data.length}`
         const signature = await client!.signMessage(data)
