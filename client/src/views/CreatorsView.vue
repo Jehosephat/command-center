@@ -3,7 +3,7 @@
  * CreatorsView.vue
  * Main creators page with Pump Interface, NFT Collection Tools, and My Collections sections
  */
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import LoadingSpinner from '@/components/ui/LoadingSpinner.vue'
@@ -15,15 +15,15 @@ import CollectionMintModal from '@/components/creators/CollectionMintModal.vue'
 import { useWallet } from '@/composables/useWallet'
 import { useCreatorCollections } from '@/composables/useCreatorCollections'
 import { useNftCollectionAuth } from '@/composables/useNftCollectionAuth'
-import type { CreatorCollectionDisplay, CreatorClassDisplay } from '@/stores/creatorCollections'
+import { useCreatorCollectionsStore, type CreatorCollectionDisplay, type CreatorClassDisplay } from '@/stores/creatorCollections'
 
 const { connected } = useWallet()
 
 // NFT Collection Authorizations (claimed collection names)
 const {
-  pendingCollections,
   fetchAuthorizations,
 } = useNftCollectionAuth()
+const collectionsStore = useCreatorCollectionsStore()
 const {
   collections,
   isLoading,
@@ -33,7 +33,11 @@ const {
   fetchCollections,
   refresh,
   toggleExpanded,
+  togglePendingExpanded,
 } = useCreatorCollections()
+
+// Pending collections from the store (has expansion/class state)
+const pendingCollections = computed(() => collectionsStore.pendingClaimedCollections)
 
 // Track if initial fetch has happened
 const hasFetched = ref(false)
@@ -155,6 +159,21 @@ async function handleClassCreated() {
 function handleToggleExpand(collectionKey: string) {
   toggleExpanded(collectionKey)
 }
+
+/**
+ * Handle toggle expand for a pending/claimed collection
+ */
+function handleTogglePendingExpand(collectionName: string) {
+  togglePendingExpanded(collectionName)
+}
+
+/**
+ * Handle add class to a pending collection
+ * Opens the CreateCollectionModal with collection pre-selected (skips claim step)
+ */
+function handleAddClassToPending(collectionName: string) {
+  openCreateCollectionModal(collectionName)
+}
 </script>
 
 <template>
@@ -190,7 +209,7 @@ function handleToggleExpand(collectionKey: string) {
 
       <!-- NFT Collection Tools Section -->
       <section class="nft-tools-section">
-        <div class="grid gap-6 md:grid-cols-2">
+        <div>
           <!-- Create Collection Card -->
           <div class="card hover:shadow-md transition-shadow">
             <div class="flex items-start gap-4">
@@ -218,29 +237,6 @@ function handleToggleExpand(collectionKey: string) {
               </div>
             </div>
           </div>
-
-          <!-- Manage Classes Card -->
-          <div class="card hover:shadow-md transition-shadow">
-            <div class="flex items-start gap-4">
-              <div class="flex-shrink-0 w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center">
-                <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                </svg>
-              </div>
-              <div class="flex-1">
-                <h3 class="text-lg font-semibold text-gray-900 mb-1">Manage Classes</h3>
-                <p class="text-gray-500 text-sm mb-4">
-                  Define token classes within your collections with custom attributes.
-                </p>
-                <p class="text-sm text-purple-600">
-                  <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                  </svg>
-                  Select a collection below to manage its classes
-                </p>
-              </div>
-            </div>
-          </div>
         </div>
 
         <!-- My Collections Section -->
@@ -249,10 +245,10 @@ function handleToggleExpand(collectionKey: string) {
             <div class="flex items-center gap-3">
               <h3 class="text-lg font-semibold text-gray-900">My Collections</h3>
               <span
-                v-if="hasCollections"
+                v-if="hasCollections || (pendingCollections && pendingCollections.length > 0)"
                 class="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600"
               >
-                {{ totalCollectionCount }}
+                {{ totalCollectionCount + (pendingCollections?.length || 0) }}
               </span>
             </div>
 
@@ -297,7 +293,8 @@ function handleToggleExpand(collectionKey: string) {
             @mint="handleMint"
             @manage-classes="handleManageClasses"
             @toggle-expand="handleToggleExpand"
-            @complete-pending="openCreateCollectionModal"
+            @toggle-pending-expand="handleTogglePendingExpand"
+            @add-class-to-pending="handleAddClassToPending"
           />
         </div>
       </section>

@@ -8,13 +8,22 @@
 import { computed, watch } from 'vue'
 import { AllowanceType } from '@gala-chain/api'
 import type { TokenBalance } from '@gala-chain/connect'
-import { useCreatorCollectionsStore, type CollectionSortOption } from '@/stores/creatorCollections'
+import BigNumber from 'bignumber.js'
+import { useCreatorCollectionsStore, type CollectionSortOption, type CreatorClassDisplay } from '@/stores/creatorCollections'
 import { useWalletStore } from '@/stores/wallet'
 import { useGalaChain } from '@/composables/useGalaChain'
+import { fetchTokenClasses } from '@/lib/galachainClient'
 
 /**
  * Composable for creator collection operations
  */
+function formatBigNumber(value: BigNumber): string {
+  if (value.isZero()) return '0'
+  if (value.isGreaterThanOrEqualTo(1_000_000)) return value.dividedBy(1_000_000).toFormat(1) + 'M'
+  if (value.isGreaterThanOrEqualTo(1_000)) return value.dividedBy(1_000).toFormat(1) + 'K'
+  return value.toFormat(0)
+}
+
 export function useCreatorCollections() {
   const collectionsStore = useCreatorCollectionsStore()
   const walletStore = useWalletStore()
@@ -102,6 +111,62 @@ export function useCreatorCollections() {
   }
 
   /**
+   * Fetch token classes for a collection from the chain and populate the store
+   */
+  async function fetchClassesForCollection(collectionName: string): Promise<void> {
+    try {
+      const allClasses: CreatorClassDisplay[] = []
+      let bookmark: string | undefined
+
+      do {
+        const response = await fetchTokenClasses(
+          { collection: collectionName },
+          { bookmark, limit: 100 }
+        )
+
+        for (const tc of response.results) {
+          const maxSupply = new BigNumber(tc.maxSupply?.toString() || '0')
+          const totalMinted = new BigNumber(tc.knownMintSupply?.toString() || tc.totalSupply?.toString() || '0')
+          const classKey = `${tc.collection}|${tc.category}|${tc.type}|${tc.additionalKey}`
+
+          allClasses.push({
+            classKey,
+            collection: tc.collection,
+            category: tc.category,
+            type: tc.type,
+            additionalKey: tc.additionalKey,
+            name: tc.name || tc.type || 'Unnamed',
+            maxSupply: maxSupply.toString(),
+            maxSupplyFormatted: maxSupply.isZero() ? 'Unlimited' : formatBigNumber(maxSupply),
+            mintedCount: totalMinted.toString(),
+            mintedCountFormatted: formatBigNumber(totalMinted),
+            canMintMore: maxSupply.isZero() || totalMinted.isLessThan(maxSupply),
+          })
+        }
+
+        bookmark = response.nextPageBookmark || undefined
+      } while (bookmark)
+
+      collectionsStore.setClassesForCollection(collectionName, allClasses)
+    } catch (err) {
+      console.error(`[useCreatorCollections] Failed to fetch classes for ${collectionName}:`, err)
+    }
+  }
+
+  /**
+   * Toggle expansion of a pending/claimed collection, fetching classes on first expand
+   */
+  async function togglePendingExpanded(collectionName: string): Promise<void> {
+    collectionsStore.togglePendingExpanded(collectionName)
+
+    // If we just expanded and haven't fetched classes yet, fetch them
+    const claimed = collectionsStore.claimedCollections.find(c => c.collection === collectionName)
+    if (claimed?.isExpanded && !claimed.classesFetched) {
+      await fetchClassesForCollection(collectionName)
+    }
+  }
+
+  /**
    * Clear all collection data (called on disconnect)
    */
   function clearCollections(): void {
@@ -152,6 +217,8 @@ export function useCreatorCollections() {
     refresh,
     setSort,
     toggleExpanded,
+    togglePendingExpanded,
+    fetchClassesForCollection,
     getCollection,
     clearCollections,
   }

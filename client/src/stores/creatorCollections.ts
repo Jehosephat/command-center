@@ -25,6 +25,12 @@ export interface ClaimedCollectionDisplay {
   authorizedUsers: string[]
   /** Status in the creation flow */
   status: CollectionStatus
+  /** Is the class list expanded in the UI */
+  isExpanded: boolean
+  /** Token classes within this collection (fetched from chain) */
+  classes: CreatorClassDisplay[]
+  /** Whether classes have been fetched from chain */
+  classesFetched: boolean
 }
 
 /**
@@ -191,9 +197,7 @@ export const useCreatorCollectionsStore = defineStore('creatorCollections', () =
 
   const hasClaimedCollections = computed(() => claimedCollections.value.length > 0)
 
-  const pendingClaimedCollections = computed(() =>
-    claimedCollections.value.filter(c => c.status === 'claimed')
-  )
+  const pendingClaimedCollections = computed(() => claimedCollections.value)
 
   // Actions
 
@@ -278,11 +282,20 @@ export const useCreatorCollectionsStore = defineStore('creatorCollections', () =
     // Filter out collections that are already created (have mint allowances)
     const createdCollectionNames = new Set(collections.value.map(c => c.collection))
 
-    claimedCollections.value = claimed.map(c => ({
-      collection: c.collection,
-      authorizedUsers: c.authorizedUsers,
-      status: createdCollectionNames.has(c.collection) ? 'created' as CollectionStatus : 'claimed' as CollectionStatus,
-    }))
+    // Preserve expansion/class state for existing entries
+    const existingMap = new Map(claimedCollections.value.map(c => [c.collection, c]))
+
+    claimedCollections.value = claimed.map(c => {
+      const existing = existingMap.get(c.collection)
+      return {
+        collection: c.collection,
+        authorizedUsers: c.authorizedUsers,
+        status: createdCollectionNames.has(c.collection) ? 'created' as CollectionStatus : 'claimed' as CollectionStatus,
+        isExpanded: existing?.isExpanded ?? false,
+        classes: existing?.classes ?? [],
+        classesFetched: existing?.classesFetched ?? false,
+      }
+    })
   }
 
   /**
@@ -302,6 +315,9 @@ export const useCreatorCollectionsStore = defineStore('creatorCollections', () =
       collection,
       authorizedUsers: [authorizedUser],
       status: 'claimed',
+      isExpanded: false,
+      classes: [],
+      classesFetched: false,
     })
   }
 
@@ -312,6 +328,34 @@ export const useCreatorCollectionsStore = defineStore('creatorCollections', () =
     const claimed = claimedCollections.value.find(c => c.collection === collection)
     if (claimed) {
       claimed.status = 'created'
+    }
+  }
+
+  /**
+   * Toggle expansion state of a pending/claimed collection
+   */
+  function togglePendingExpanded(collectionName: string): void {
+    const claimed = claimedCollections.value.find(c => c.collection === collectionName)
+    if (claimed) {
+      claimed.isExpanded = !claimed.isExpanded
+    }
+  }
+
+  /**
+   * Set fetched classes for a collection (works for both created and pending collections)
+   */
+  function setClassesForCollection(collectionName: string, classes: CreatorClassDisplay[]): void {
+    // Update created collections
+    for (const col of collections.value) {
+      if (col.collection === collectionName) {
+        col.classes = classes
+      }
+    }
+    // Update claimed/pending collections
+    const claimed = claimedCollections.value.find(c => c.collection === collectionName)
+    if (claimed) {
+      claimed.classes = classes
+      claimed.classesFetched = true
     }
   }
 
@@ -368,6 +412,8 @@ export const useCreatorCollectionsStore = defineStore('creatorCollections', () =
     setError,
     setSort,
     toggleExpanded,
+    togglePendingExpanded,
+    setClassesForCollection,
     clearCollections,
     getCollectionByKey,
     needsRefresh,

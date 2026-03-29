@@ -8,6 +8,7 @@
 
 import { ref, computed } from 'vue'
 import { useWalletStore } from '@/stores/wallet'
+import { useCreatorCollectionsStore } from '@/stores/creatorCollections'
 import {
   fetchNftCollectionAuthorizations,
   grantNftCollectionAuthorization,
@@ -44,6 +45,7 @@ const claimedCollections = ref<ClaimedCollection[]>([])
 
 export function useNftCollectionAuth() {
   const walletStore = useWalletStore()
+  const collectionsStore = useCreatorCollectionsStore()
 
   // Computed
   const isConnected = computed(() => walletStore.connected)
@@ -93,6 +95,9 @@ export function useNftCollectionAuth() {
         authorizedUsers: auth.authorizedUsers,
         isCreated: false, // Will be updated when we check existing collections
       }))
+
+      // Sync into the Pinia store (which has expansion/class state)
+      collectionsStore.setClaimedCollections(results)
 
       return { success: true, data: results }
     } catch (err) {

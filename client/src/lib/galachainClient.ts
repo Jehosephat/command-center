@@ -461,6 +461,46 @@ export async function createNftCollection(
 }
 
 // ============================================================================
+// Token Class Queries
+// ============================================================================
+
+/**
+ * Response from FetchTokenClassesWithPagination
+ */
+export interface FetchTokenClassesResponse {
+  results: TokenClass[]
+  nextPageBookmark?: string
+}
+
+/**
+ * Fetch token classes for a collection (with optional filters and pagination).
+ * This is a read-only operation that does NOT require wallet signing.
+ */
+export async function fetchTokenClasses(
+  filters: {
+    collection: string
+    category?: string
+    type?: string
+    additionalKey?: string
+  },
+  options?: {
+    bookmark?: string
+    limit?: number
+  }
+): Promise<FetchTokenClassesResponse> {
+  const dto = {
+    collection: filters.collection,
+    ...(filters.category && { category: filters.category }),
+    ...(filters.type && { type: filters.type }),
+    ...(filters.additionalKey && { additionalKey: filters.additionalKey }),
+    ...(options?.bookmark && { bookmark: options.bookmark }),
+    ...(options?.limit && { limit: options.limit }),
+  }
+
+  return post<FetchTokenClassesResponse>('FetchTokenClassesWithPagination', dto)
+}
+
+// ============================================================================
 // Environment Configuration Export
 // ============================================================================
 

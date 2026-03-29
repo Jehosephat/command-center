@@ -447,7 +447,7 @@ onUnmounted(() => {
                   id="name"
                   v-model="name"
                   type="text"
-                  placeholder="My Awesome Collection"
+                  placeholder="My Awesome NFT"
                   class="input w-full"
                   :class="{ 'border-red-500 dark:border-red-500': nameError }"
                   :disabled="isCreating"
@@ -466,7 +466,7 @@ onUnmounted(() => {
                   id="symbol"
                   v-model="symbol"
                   type="text"
-                  placeholder="MAC"
+                  placeholder="MANFT"
                   maxlength="10"
                   class="input w-full uppercase"
                   :class="{ 'border-red-500 dark:border-red-500': symbolError }"
@@ -489,7 +489,7 @@ onUnmounted(() => {
                   id="description"
                   v-model="description"
                   rows="3"
-                  placeholder="Describe your NFT collection..."
+                  placeholder="Describe your NFT"
                   class="input w-full resize-none"
                   :class="{ 'border-red-500 dark:border-red-500': descriptionError }"
                   :disabled="isCreating"
@@ -557,7 +557,7 @@ onUnmounted(() => {
                     id="type"
                     v-model="type"
                     type="text"
-                    placeholder="common"
+                    placeholder="Broadsword"
                     class="input w-full"
                     :class="{ 'border-red-500 dark:border-red-500': typeError }"
                     :disabled="isCreating"
@@ -576,7 +576,7 @@ onUnmounted(() => {
                     id="additionalKey"
                     v-model="additionalKey"
                     type="text"
-                    placeholder="none"
+                    placeholder="Rare"
                     class="input w-full"
                     :class="{ 'border-red-500 dark:border-red-500': additionalKeyError }"
                     :disabled="isCreating"
@@ -684,16 +684,12 @@ onUnmounted(() => {
               </div>
 
               <div class="flex justify-between">
-                <span class="text-sm text-gray-500 dark:text-gray-400">Type</span>
-                <span class="text-sm font-medium text-gray-900 dark:text-white">NFT Collection</span>
-              </div>
-              <div class="flex justify-between">
                 <span class="text-sm text-gray-500 dark:text-gray-400">Collection Name</span>
                 <span class="text-sm font-medium text-gray-900 dark:text-white">{{ claimedCollectionName }}</span>
               </div>
-              <div class="flex justify-between">
-                <span class="text-sm text-gray-500 dark:text-gray-400">Token Key</span>
-                <span class="text-sm font-mono text-gray-900 dark:text-white truncate max-w-[200px]" :title="collectionKeyPreview">
+              <div class="flex justify-between gap-4">
+                <span class="text-sm text-gray-500 dark:text-gray-400 flex-shrink-0">Token Key</span>
+                <span class="text-sm font-mono text-gray-900 dark:text-white break-all text-right">
                   {{ collectionKeyPreview }}
                 </span>
               </div>
