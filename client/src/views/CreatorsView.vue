@@ -13,6 +13,7 @@ import CreateCollectionModal from '@/components/creators/CreateCollectionModal.v
 import CreateClassModal from '@/components/creators/CreateClassModal.vue'
 import CollectionMintModal from '@/components/creators/CollectionMintModal.vue'
 import { useWallet } from '@/composables/useWallet'
+import BigNumber from 'bignumber.js'
 import { useCreatorCollections } from '@/composables/useCreatorCollections'
 import { useNftCollectionAuth } from '@/composables/useNftCollectionAuth'
 import { useCreatorCollectionsStore, type CreatorCollectionDisplay, type CreatorClassDisplay } from '@/stores/creatorCollections'
@@ -34,6 +35,7 @@ const {
   refresh,
   toggleExpanded,
   togglePendingExpanded,
+  fetchClassesForCollection,
 } = useCreatorCollections()
 
 // Pending collections from the store (has expansion/class state)
@@ -86,12 +88,20 @@ function closeCreateCollectionModal() {
 }
 
 /**
+ * Re-fetch classes for all expanded pending collections
+ */
+async function refreshExpandedClasses() {
+  const expanded = collectionsStore.claimedCollections.filter(c => c.isExpanded)
+  await Promise.all(expanded.map(c => fetchClassesForCollection(c.collection)))
+}
+
+/**
  * Handle successful collection creation
  */
 async function handleCollectionCreated() {
   showCreateCollectionModal.value = false
-  // Refresh collections to show the new one
   await refresh(true)
+  await refreshExpandedClasses()
 }
 
 /**
@@ -123,8 +133,8 @@ async function handleMintSuccess(
   showMintModal.value = false
   selectedCollectionForMint.value = null
   selectedClassForMint.value = null
-  // Refresh collections to update minted counts
   await refresh(true)
+  await refreshExpandedClasses()
 }
 
 /**
@@ -149,8 +159,8 @@ function closeCreateClassModal() {
 async function handleClassCreated() {
   showCreateClassModal.value = false
   selectedCollectionForClass.value = null
-  // Refresh collections to show the new class
   await refresh(true)
+  await refreshExpandedClasses()
 }
 
 /**
@@ -173,6 +183,39 @@ function handleTogglePendingExpand(collectionName: string) {
  */
 function handleAddClassToPending(collectionName: string) {
   openCreateCollectionModal(collectionName)
+}
+
+/**
+ * Handle mint from a class in a pending collection
+ * Builds a minimal CreatorCollectionDisplay so the mint modal can use it
+ */
+function handleMintClass(collectionName: string, classItem: CreatorClassDisplay) {
+  const pending = collectionsStore.claimedCollections.find(c => c.collection === collectionName)
+  selectedCollectionForMint.value = {
+    collectionKey: `${classItem.collection}|${classItem.category}|${classItem.type}|${classItem.additionalKey}`,
+    collection: classItem.collection,
+    category: classItem.category,
+    type: classItem.type,
+    additionalKey: classItem.additionalKey,
+    name: collectionName,
+    symbol: '',
+    description: '',
+    image: '',
+    isNonFungible: true,
+    maxSupply: classItem.maxSupply,
+    totalSupply: classItem.mintedCount,
+    totalBurned: '0',
+    isAuthority: true,
+    ownedCount: 0,
+    mintAllowanceRaw: new BigNumber('1e18').toString(),
+    mintAllowanceFormatted: 'Unlimited',
+    hasUnlimitedMint: true,
+    classes: pending?.classes ?? [],
+    isExpanded: false,
+    status: 'created',
+  }
+  selectedClassForMint.value = classItem
+  showMintModal.value = true
 }
 </script>
 
@@ -295,6 +338,7 @@ function handleAddClassToPending(collectionName: string) {
             @toggle-expand="handleToggleExpand"
             @toggle-pending-expand="handleTogglePendingExpand"
             @add-class-to-pending="handleAddClassToPending"
+            @mint-class="handleMintClass"
           />
         </div>
       </section>

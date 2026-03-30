@@ -7,7 +7,7 @@
 import CollectionCard from './CollectionCard.vue'
 import CollectionCardSkeleton from './CollectionCardSkeleton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
-import type { CreatorCollectionDisplay, ClaimedCollectionDisplay } from '@/stores/creatorCollections'
+import type { CreatorCollectionDisplay, ClaimedCollectionDisplay, CreatorClassDisplay } from '@/stores/creatorCollections'
 
 defineProps<{
   collections: CreatorCollectionDisplay[]
@@ -21,6 +21,7 @@ const emit = defineEmits<{
   (e: 'toggleExpand', collectionKey: string): void
   (e: 'togglePendingExpand', collectionName: string): void
   (e: 'addClassToPending', collectionName: string): void
+  (e: 'mintClass', collectionName: string, classItem: CreatorClassDisplay): void
 }>()
 </script>
 
@@ -106,14 +107,25 @@ const emit = defineEmits<{
                     class="p-2 bg-white rounded-lg text-sm border border-amber-100"
                   >
                     <div class="flex items-center justify-between">
-                      <span class="font-medium text-gray-900">{{ classItem.name }}</span>
-                      <span class="text-gray-500 text-xs">
-                        {{ classItem.mintedCountFormatted }} / {{ classItem.maxSupplyFormatted === '0' ? '∞' : classItem.maxSupplyFormatted }}
-                      </span>
+                      <div class="min-w-0 flex-1">
+                        <span class="font-medium text-gray-900">{{ classItem.name }}</span>
+                        <p class="text-xs text-gray-400 mt-0.5 truncate" :title="classItem.classKey">
+                          {{ classItem.classKey }}
+                        </p>
+                      </div>
+                      <div class="flex items-center gap-3 flex-shrink-0 ml-3">
+                        <span class="text-gray-500 text-xs">
+                          {{ classItem.mintedCountFormatted }} / {{ classItem.maxSupplyFormatted === '0' ? '∞' : classItem.maxSupplyFormatted }}
+                        </span>
+                        <button
+                          v-if="classItem.canMintMore"
+                          class="btn-primary text-xs px-2 py-1"
+                          @click.stop="emit('mintClass', pending.collection, classItem)"
+                        >
+                          Mint
+                        </button>
+                      </div>
                     </div>
-                    <p class="text-xs text-gray-400 mt-0.5 truncate" :title="classItem.classKey">
-                      {{ classItem.classKey }}
-                    </p>
                   </div>
                 </div>
               </div>

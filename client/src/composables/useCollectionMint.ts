@@ -86,12 +86,11 @@ export function useCollectionMint() {
    * Get the maximum mintable quantity for a collection
    * Returns the minimum of remaining allowance and an optional cap
    */
-  function getMaxMintableQuantity(collection: CreatorCollectionDisplay, cap: number = 100): number {
+  function getMaxMintableQuantity(collection: CreatorCollectionDisplay): number {
     const remaining = new BigNumber(collection.mintAllowanceRaw)
 
-    // Cap at a reasonable number for UI performance
-    if (remaining.isGreaterThan(cap)) {
-      return cap
+    if (remaining.isGreaterThan(Number.MAX_SAFE_INTEGER)) {
+      return Number.MAX_SAFE_INTEGER
     }
 
     return remaining.toNumber()
@@ -99,22 +98,16 @@ export function useCollectionMint() {
 
   /**
    * Get the maximum mintable quantity for a class
-   * Returns the minimum of remaining supply and an optional cap
+   * Returns the remaining supply (maxSupply - minted), or MAX_SAFE_INTEGER if unlimited
    */
-  function getMaxMintableQuantityForClass(classItem: CreatorClassDisplay, cap: number = 100): number {
-    // If no max supply (unlimited), use the cap
+  function getMaxMintableQuantityForClass(classItem: CreatorClassDisplay): number {
     const maxSupply = new BigNumber(classItem.maxSupply || '0')
     if (maxSupply.isZero()) {
-      return cap
+      return Number.MAX_SAFE_INTEGER // Unlimited
     }
 
-    // Calculate remaining supply
     const minted = new BigNumber(classItem.mintedCount || '0')
     const remaining = maxSupply.minus(minted)
-
-    if (remaining.isGreaterThan(cap)) {
-      return cap
-    }
 
     return Math.max(0, remaining.toNumber())
   }

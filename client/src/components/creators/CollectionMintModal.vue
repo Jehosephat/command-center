@@ -125,12 +125,21 @@ const { handleSubmit, resetForm, meta } = useForm({
 // Fields
 const { value: quantity, errorMessage: quantityError } = useField<string>('quantity')
 
+// Recipient address (not part of vee-validate schema since it's optional with a default)
+const recipient = ref('')
+
 // Initialize field values
 quantity.value = '1'
 
 // Computed: form can submit
 const canSubmit = computed(() => {
   return meta.value.valid && !isMinting.value && quantity.value && props.collection && maxMintQuantity.value > 0
+})
+
+// Computed: effective recipient (user input or default to connected wallet)
+const effectiveRecipient = computed(() => {
+  const trimmed = recipient.value.trim()
+  return trimmed || ownerAddress.value
 })
 
 // Computed: combined error
@@ -185,6 +194,7 @@ function hideDialog() {
 function resetFormState() {
   resetForm()
   quantity.value = '1'
+  recipient.value = ''
   selectedClassKey.value = props.selectedClass?.classKey || null
   showConfirmation.value = false
   localError.value = null
@@ -252,17 +262,17 @@ async function confirmMint() {
   let result
 
   if (selectedClass.value) {
-    // Mint from specific class
     result = await executeMintFromClass(
       selectedClass.value,
       quantity.value,
-      props.collection
+      props.collection,
+      effectiveRecipient.value
     )
   } else {
-    // Mint from collection (default class)
     result = await executeMintFromCollection(
       props.collection,
-      quantity.value
+      quantity.value,
+      effectiveRecipient.value
     )
   }
 
@@ -533,6 +543,27 @@ onUnmounted(() => {
                   </template>
                 </p>
               </div>
+
+              <!-- Recipient -->
+              <div class="mb-6">
+                <label
+                  for="recipient"
+                  class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
+                  Mint To
+                </label>
+                <input
+                  id="recipient"
+                  v-model="recipient"
+                  type="text"
+                  :placeholder="ownerAddress || 'eth|... or 0x...'"
+                  class="input w-full font-mono text-sm"
+                  :disabled="isMinting"
+                />
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  Leave empty to mint to your own wallet.
+                </p>
+              </div>
             </form>
           </div>
 
@@ -593,9 +624,9 @@ onUnmounted(() => {
                     <span class="text-sm text-gray-500 dark:text-gray-400">Recipient</span>
                     <span
                       class="text-sm font-mono text-gray-900 dark:text-white"
-                      :title="ownerAddress"
+                      :title="effectiveRecipient"
                     >
-                      {{ truncateAddress(ownerAddress) }}
+                      {{ truncateAddress(effectiveRecipient) }}
                     </span>
                   </div>
                 </div>

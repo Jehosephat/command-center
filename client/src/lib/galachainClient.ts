@@ -256,7 +256,8 @@ export async function transfer(
 }
 
 /**
- * Mint tokens (requires mint authority)
+ * Mint tokens with allowance (grants allowance and mints in a single transaction).
+ * Requires the caller to be a token authority for the collection.
  */
 export async function mint(
   client: BrowserConnectClient,
@@ -271,12 +272,13 @@ export async function mint(
 ): Promise<TokenInstanceKey[]> {
   const dto = {
     tokenClass,
+    tokenInstance: '0',
     owner: owner as UserRef,
     quantity: new BigNumber(quantity).toString(),
     uniqueKey: generateUniqueKey(),
   }
 
-  return signAndPost<TokenInstanceKey[]>(client, 'MintToken', dto)
+  return signAndPost<TokenInstanceKey[]>(client, 'MintTokenWithAllowance', dto)
 }
 
 /**
