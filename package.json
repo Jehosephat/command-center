@@ -18,7 +18,7 @@
     "typecheck": "tsc --noEmit && cd client && npm run typecheck"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "keywords": [
     "galachain",
