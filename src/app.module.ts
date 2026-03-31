@@ -25,10 +25,11 @@ import { Purchase } from './modules/marketplace/entities/purchase.entity';
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        type: 'better-sqlite3' as const,
-        database: config.get<string>('database.path', './data/marketplace.sqlite'),
+        type: 'sqljs' as const,
+        location: config.get<string>('database.path', './data/marketplace.sqlite'),
+        autoSave: true,
         entities: [Listing, Purchase],
-        synchronize: true, // Auto-create tables (fine for SQLite dev/prod)
+        synchronize: true,
       }),
     }),
     HealthModule,
