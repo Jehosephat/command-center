@@ -1,11 +1,16 @@
 import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ServeStaticModule } from '@nestjs/serve-static';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { join } from 'path';
 import { HealthModule } from './modules/health/health.module';
+import { GalaChainModule } from './modules/galachain/galachain.module';
+import { MarketplaceModule } from './modules/marketplace/marketplace.module';
 import { RequestLoggerMiddleware } from './middleware/request-logger.middleware';
 import { SpaFallbackMiddleware } from './middleware/spa-fallback.middleware';
 import configuration from './config/configuration';
+import { Listing } from './modules/marketplace/entities/listing.entity';
+import { Purchase } from './modules/marketplace/entities/purchase.entity';
 
 @Module({
   imports: [
@@ -17,7 +22,18 @@ import configuration from './config/configuration';
       rootPath: join(__dirname, '..', 'client'),
       exclude: ['/api{/*path}'],
     }),
+    TypeOrmModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        type: 'better-sqlite3' as const,
+        database: config.get<string>('database.path', './data/marketplace.sqlite'),
+        entities: [Listing, Purchase],
+        synchronize: true, // Auto-create tables (fine for SQLite dev/prod)
+      }),
+    }),
     HealthModule,
+    GalaChainModule,
+    MarketplaceModule,
   ],
   controllers: [],
   providers: [],

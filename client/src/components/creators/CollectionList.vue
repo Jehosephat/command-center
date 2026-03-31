@@ -22,6 +22,7 @@ const emit = defineEmits<{
   (e: 'togglePendingExpand', collectionName: string): void
   (e: 'addClassToPending', collectionName: string): void
   (e: 'mintClass', collectionName: string, classItem: CreatorClassDisplay): void
+  (e: 'sellClass', classItem: CreatorClassDisplay): void
 }>()
 </script>
 
@@ -123,6 +124,12 @@ const emit = defineEmits<{
                           @click.stop="emit('mintClass', pending.collection, classItem)"
                         >
                           Mint
+                        </button>
+                        <button
+                          class="btn-secondary text-xs px-2 py-1"
+                          @click.stop="emit('sellClass', classItem)"
+                        >
+                          Sell
                         </button>
                       </div>
                     </div>

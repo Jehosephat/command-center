@@ -12,6 +12,7 @@ import CollectionList from '@/components/creators/CollectionList.vue'
 import CreateCollectionModal from '@/components/creators/CreateCollectionModal.vue'
 import CreateClassModal from '@/components/creators/CreateClassModal.vue'
 import CollectionMintModal from '@/components/creators/CollectionMintModal.vue'
+import SellNFTModal from '@/components/marketplace/SellNFTModal.vue'
 import { useWallet } from '@/composables/useWallet'
 import BigNumber from 'bignumber.js'
 import { useCreatorCollections } from '@/composables/useCreatorCollections'
@@ -52,6 +53,10 @@ const selectedCollectionForClass = ref<CreatorCollectionDisplay | null>(null)
 const selectedCollectionForMint = ref<CreatorCollectionDisplay | null>(null)
 const selectedClassForMint = ref<CreatorClassDisplay | null>(null)
 const preselectedCollectionName = ref<string | null>(null)
+const showSellModal = ref(false)
+const selectedClassForSell = ref<CreatorClassDisplay | null>(null)
+
+const fulfillerAddress = import.meta.env.VITE_FULFILLER_ADDRESS || ''
 
 // Fetch collections on mount if connected
 onMounted(async () => {
@@ -217,6 +222,26 @@ function handleMintClass(collectionName: string, classItem: CreatorClassDisplay)
   selectedClassForMint.value = classItem
   showMintModal.value = true
 }
+
+/**
+ * Handle sell from a class in a pending collection
+ */
+function handleSellClass(classItem: CreatorClassDisplay) {
+  selectedClassForSell.value = classItem
+  showSellModal.value = true
+}
+
+function closeSellModal() {
+  showSellModal.value = false
+  selectedClassForSell.value = null
+}
+
+async function handleSellSuccess() {
+  showSellModal.value = false
+  selectedClassForSell.value = null
+  await refresh(true)
+  await refreshExpandedClasses()
+}
 </script>
 
 <template>
@@ -339,6 +364,7 @@ function handleMintClass(collectionName: string, classItem: CreatorClassDisplay)
             @toggle-pending-expand="handleTogglePendingExpand"
             @add-class-to-pending="handleAddClassToPending"
             @mint-class="handleMintClass"
+            @sell-class="handleSellClass"
           />
         </div>
       </section>
@@ -366,6 +392,15 @@ function handleMintClass(collectionName: string, classItem: CreatorClassDisplay)
         :selected-class="selectedClassForMint"
         @close="closeMintModal"
         @success="handleMintSuccess"
+      />
+
+      <!-- Sell NFT Modal -->
+      <SellNFTModal
+        :open="showSellModal"
+        :nft-class="selectedClassForSell"
+        :fulfiller-address="fulfillerAddress"
+        @close="closeSellModal"
+        @success="handleSellSuccess"
       />
     </template>
   </div>

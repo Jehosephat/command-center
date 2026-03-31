@@ -308,6 +308,45 @@ export async function burn(
   return signAndPost<unknown[]>(client, 'BurnTokens', dto)
 }
 
+/**
+ * Grant a mint allowance to another address (e.g. the fulfiller wallet).
+ * The caller must be a token authority for the specified token class.
+ */
+export async function grantAllowance(
+  client: BrowserConnectClient,
+  params: {
+    tokenInstance: {
+      collection: string
+      category: string
+      type: string
+      additionalKey: string
+      instance?: string
+    }
+    grantedTo: string
+    quantity: BigNumber | string | number
+    allowanceType: number
+    uses?: BigNumber | string | number
+    expires?: number
+  }
+): Promise<unknown> {
+  const dto = {
+    tokenInstance: {
+      ...params.tokenInstance,
+      instance: params.tokenInstance.instance ?? '0',
+    },
+    quantities: [{
+      user: params.grantedTo,
+      quantity: new BigNumber(params.quantity).toString(),
+    }],
+    allowanceType: params.allowanceType,
+    uses: new BigNumber(params.uses && params.uses !== '0' ? params.uses : '1000000').toString(),
+    ...(params.expires !== undefined && { expires: params.expires }),
+    uniqueKey: generateUniqueKey(),
+  }
+
+  return signAndPost(client, 'GrantAllowance', dto)
+}
+
 // ============================================================================
 // Token Class Operations
 // ============================================================================
@@ -355,8 +394,8 @@ export async function createCollection(
     isNonFungible: input.isNonFungible ?? true,
     decimals: input.decimals ?? 0,
     uniqueKey: generateUniqueKey(),
-    ...(input.maxSupply !== undefined && { maxSupply: new BigNumber(input.maxSupply).toString() }),
-    ...(input.maxCapacity !== undefined && { maxCapacity: new BigNumber(input.maxCapacity).toString() }),
+    ...(input.maxSupply !== undefined && isFinite(Number(input.maxSupply)) && Number(input.maxSupply) > 0 && { maxSupply: new BigNumber(input.maxSupply).toString() }),
+    ...(input.maxCapacity !== undefined && isFinite(Number(input.maxCapacity)) && Number(input.maxCapacity) > 0 && { maxCapacity: new BigNumber(input.maxCapacity).toString() }),
     ...(input.rarity && { rarity: input.rarity }),
     ...(input.authorities && input.authorities.length > 0 && { authorities: input.authorities }),
   }
@@ -452,8 +491,8 @@ export async function createNftCollection(
     ...(input.metadataAddress && { metadataAddress: input.metadataAddress }),
     ...(input.contractAddress && { contractAddress: input.contractAddress }),
     ...(input.rarity && { rarity: input.rarity }),
-    ...(input.maxSupply !== undefined && { maxSupply: new BigNumber(input.maxSupply).toString() }),
-    ...(input.maxCapacity !== undefined && { maxCapacity: new BigNumber(input.maxCapacity).toString() }),
+    ...(input.maxSupply !== undefined && isFinite(Number(input.maxSupply)) && Number(input.maxSupply) > 0 && { maxSupply: new BigNumber(input.maxSupply).toString() }),
+    ...(input.maxCapacity !== undefined && isFinite(Number(input.maxCapacity)) && Number(input.maxCapacity) > 0 && { maxCapacity: new BigNumber(input.maxCapacity).toString() }),
     ...(input.authorities && input.authorities.length > 0 && {
       authorities: input.authorities.map(a => a as UserRef)
     }),

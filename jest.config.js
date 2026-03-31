@@ -6,6 +6,10 @@ module.exports = {
   transform: {
     '^.+\\.(t|j)s$': 'ts-jest',
   },
+  // Transform ESM-only packages so Jest can handle them
+  transformIgnorePatterns: [
+    'node_modules/(?!(json-stringify-deterministic)/)',
+  ],
   collectCoverageFrom: ['src/**/*.(t|j)s', 'shared/**/*.(t|j)s'],
   coverageDirectory: './coverage',
   testEnvironment: 'node',

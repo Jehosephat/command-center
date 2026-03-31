@@ -24,6 +24,11 @@ const navItems = [
     icon: 'sparkles',
   },
   {
+    name: 'Marketplace',
+    to: '/marketplace',
+    icon: 'store',
+  },
+  {
     name: 'Export',
     to: '/export',
     icon: 'download',
@@ -32,7 +37,9 @@ const navItems = [
 ]
 
 const isActive = (to: string) => {
-  return route.path === to || (to === '/tokens' && route.path === '/')
+  if (to === '/tokens' && route.path === '/') return true
+  if (to === '/marketplace') return route.path.startsWith('/marketplace')
+  return route.path === to
 }
 </script>
 
@@ -65,6 +72,9 @@ const isActive = (to: string) => {
         </svg>
         <svg v-else-if="item.icon === 'sparkles'" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+        </svg>
+        <svg v-else-if="item.icon === 'store'" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" />
         </svg>
         <svg v-else-if="item.icon === 'download'" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />

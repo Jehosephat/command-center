@@ -27,6 +27,27 @@ const router = createRouter({
           component: () => import('@/views/CreatorsView.vue'),
         },
         {
+          path: 'marketplace',
+          name: 'marketplace',
+          component: () => import('@/views/MarketplaceView.vue'),
+        },
+        {
+          path: 'marketplace/create',
+          name: 'marketplace-create',
+          component: () => import('@/views/CreateListingView.vue'),
+        },
+        {
+          path: 'marketplace/:id',
+          name: 'marketplace-listing',
+          component: () => import('@/views/ListingDetailView.vue'),
+          props: true,
+        },
+        {
+          path: 'marketplace/dashboard',
+          name: 'marketplace-dashboard',
+          component: () => import('@/views/CreatorDashboardView.vue'),
+        },
+        {
           path: 'export',
           name: 'export',
           component: () => import('@/views/ExportView.vue'),
