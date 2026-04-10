@@ -11,6 +11,7 @@ import { z } from 'zod'
 import type { CreatorCollectionDisplay, CreatorClassDisplay } from '@/stores/creatorCollections'
 import { useCollectionMint } from '@/composables/useCollectionMint'
 import LoadingSpinner from '@/components/ui/LoadingSpinner.vue'
+import FeeEstimate from '@/components/ui/FeeEstimate.vue'
 import BigNumber from 'bignumber.js'
 
 interface Props {
@@ -144,6 +145,22 @@ const effectiveRecipient = computed(() => {
 
 // Computed: combined error
 const displayError = computed(() => localError.value || mintError.value)
+
+// Computed: inner DTO used to estimate the MintToken fee via DryRun
+const mintDtoForEstimate = computed(() => {
+  if (!props.collection || !quantity.value || !effectiveRecipient.value) return null
+  const cls = selectedClass.value || props.collection
+  return {
+    tokenClass: {
+      collection: cls.collection,
+      category: cls.category,
+      type: cls.type,
+      additionalKey: cls.additionalKey,
+    },
+    owner: effectiveRecipient.value,
+    quantity: new BigNumber(quantity.value).toString(),
+  }
+})
 
 // Watch for open state changes
 watch(() => props.open, (isOpen) => {
@@ -628,6 +645,9 @@ onUnmounted(() => {
                     >
                       {{ truncateAddress(effectiveRecipient) }}
                     </span>
+                  </div>
+                  <div class="pt-2 border-t border-gray-200 dark:border-gray-700">
+                    <FeeEstimate method="MintToken" :dto="mintDtoForEstimate" />
                   </div>
                 </div>
               </div>

@@ -542,6 +542,168 @@ export async function fetchTokenClasses(
 }
 
 // ============================================================================
+// DryRun & Fee Estimation
+// ============================================================================
+
+/**
+ * Response from the DryRun chaincode method
+ */
+export interface DryRunResult {
+  response: {
+    Status: number
+    Data?: unknown
+    Message?: string
+    ErrorKey?: string
+    ErrorCode?: number
+    ErrorPayload?: { paymentQuantity?: string; [key: string]: unknown }
+  }
+  writes: Record<string, string>
+  reads: Record<string, string>
+  deletes: Record<string, true>
+}
+
+/**
+ * Generate a uniqueKey for DryRun calls (distinct from submission keys).
+ * Uses a dryrun- prefix so logs/audit can distinguish simulated vs real operations.
+ */
+function generateDryRunUniqueKey(): string {
+  // crypto.randomUUID() is available in browsers and Node 19+
+  return `dryrun-${typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : generateUniqueKey()}`
+}
+
+/**
+ * Simulate a write operation on-chain without signing or persisting state.
+ * Returns the simulated response plus the set of writes, reads, and deletes
+ * that would occur. Use this to preview results and estimate fees.
+ *
+ * The inner DTO:
+ *   - should NOT include a signature (dry runs aren't signed)
+ *   - SHOULD include a uniqueKey (use the dryrun- prefix; not consumed by the chain)
+ *   - may include dtoExpiresAt with a future timestamp
+ *
+ * Caller identity is supplied via signerAddress at the top level (eth|... or client|...).
+ *
+ * Note: DryRun returns a nested response — the outer Status indicates whether the DryRun
+ * call itself succeeded, while the inner Data.response.Status indicates whether the
+ * simulated operation would succeed. Both must be 1 for the simulation to be valid.
+ */
+export async function dryRun(
+  method: string,
+  signerAddress: string,
+  innerDto: object,
+): Promise<DryRunResult> {
+  // Strip signing-related fields from the inner DTO if present
+  const cleanDto = { ...(innerDto as Record<string, unknown>) }
+  delete cleanDto.signature
+  delete cleanDto.prefix
+  delete cleanDto.signerPublicKey
+  delete cleanDto.signerAddress
+  delete cleanDto.trace
+  delete cleanDto.multisig
+
+  // Include a fresh dryrun-prefixed uniqueKey (not consumed by the chain)
+  if (!cleanDto.uniqueKey) {
+    cleanDto.uniqueKey = generateDryRunUniqueKey()
+  }
+
+  // Note: we don't throw on inner simulation failure — the caller should inspect
+  // result.response.Status. Even failed simulations can contain useful fee info
+  // (e.g. ErrorPayload.paymentQuantity when the user has insufficient balance).
+  return post<DryRunResult>('DryRun', {
+    method,
+    signerAddress,
+    dto: cleanDto,
+  })
+}
+
+/**
+ * Parse a DryRunResult's writes and sum up any fee receipts to compute the
+ * estimated total fee that would be charged for the simulated operation.
+ *
+ * Fee receipts are embedded in writes as GalaChain Fee Records — keys containing
+ * the substring "GCFR" have JSON-encoded values with a "quantity" field.
+ *
+ * When the simulation fails with insufficient balance, the fee is in
+ * response.ErrorPayload.paymentQuantity instead.
+ */
+export function estimateFeeFromDryRun(result: DryRunResult): {
+  totalFee: BigNumber
+  receipts: Array<{ feeCode?: string; quantity: string }>
+  simulationSucceeded: boolean
+  errorMessage?: string
+  errorKey?: string
+} {
+  let totalFee = new BigNumber(0)
+  const receipts: Array<{ feeCode?: string; quantity: string }> = []
+
+  // Primary source: GCFR entries in writes (successful simulation case)
+  for (const [key, value] of Object.entries(result.writes)) {
+    if (!key.includes('GCFR')) continue
+
+    try {
+      const parsed = JSON.parse(value) as { quantity?: string; feeCode?: string }
+      if (parsed?.quantity != null) {
+        const q = new BigNumber(parsed.quantity)
+        if (q.isFinite()) {
+          totalFee = totalFee.plus(q)
+          receipts.push({
+            feeCode: parsed.feeCode,
+            quantity: q.toString(),
+          })
+        }
+      }
+    } catch {
+      // Skip unparseable writes
+    }
+  }
+
+  const simulationSucceeded = result.response?.Status === 1
+  const errorMessage = simulationSucceeded ? undefined : result.response?.Message
+  const errorKey = simulationSucceeded ? undefined : result.response?.ErrorKey
+
+  // Fallback: if no GCFR entries were found but the simulation failed with a
+  // PAYMENT_REQUIRED error, the required fee is in ErrorPayload.paymentQuantity.
+  if (receipts.length === 0 && !simulationSucceeded) {
+    const paymentQty = result.response?.ErrorPayload?.paymentQuantity
+    if (paymentQty != null) {
+      const q = new BigNumber(String(paymentQty))
+      if (q.isFinite()) {
+        totalFee = q
+        receipts.push({ feeCode: undefined, quantity: q.toString() })
+      }
+    }
+  }
+
+  return { totalFee, receipts, simulationSucceeded, errorMessage, errorKey }
+}
+
+/**
+ * Convenience: run DryRun and return the total fee estimate plus simulation status.
+ * The totalFee will be populated even when the simulation fails with insufficient balance.
+ */
+export async function estimateFee(
+  method: string,
+  signerAddress: string,
+  innerDto: object,
+): Promise<{
+  totalFee: string
+  receipts: Array<{ feeCode?: string; quantity: string }>
+  simulationSucceeded: boolean
+  errorMessage?: string
+  errorKey?: string
+}> {
+  const result = await dryRun(method, signerAddress, innerDto)
+  const parsed = estimateFeeFromDryRun(result)
+  return {
+    totalFee: parsed.totalFee.toString(),
+    receipts: parsed.receipts,
+    simulationSucceeded: parsed.simulationSucceeded,
+    errorMessage: parsed.errorMessage,
+    errorKey: parsed.errorKey,
+  }
+}
+
+// ============================================================================
 // Environment Configuration Export
 // ============================================================================
 

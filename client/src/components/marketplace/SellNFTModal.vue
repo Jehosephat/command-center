@@ -4,6 +4,8 @@ import { useWallet } from '@/composables/useWallet'
 import { useCreateListing } from '@/composables/useCreateListing'
 import type { CreatorClassDisplay } from '@/stores/creatorCollections'
 import LoadingSpinner from '@/components/ui/LoadingSpinner.vue'
+import FeeEstimate from '@/components/ui/FeeEstimate.vue'
+import BigNumber from 'bignumber.js'
 
 const props = defineProps<{
   open: boolean
@@ -44,6 +46,39 @@ const isProcessing = computed(() => isGranting.value || isCreating.value)
 
 const canSubmit = computed(() => {
   return activeClass.value && priceAmount.value && !isProcessing.value
+})
+
+// Inner DTO used to estimate the GrantAllowance fee via DryRun
+const grantAllowanceDtoForEstimate = computed(() => {
+  const nft = activeClass.value
+  if (!nft) return null
+
+  // Figure out the allowance quantity the way handleSubmit will
+  let supply: number
+  if (totalSupply.value) {
+    supply = parseInt(totalSupply.value)
+  } else {
+    const maxSup = parseInt(nft.maxSupply || '0')
+    const minted = parseInt(nft.mintedCount || '0')
+    supply = maxSup > 0 ? maxSup - minted : 0
+  }
+  if (supply <= 0) return null
+
+  return {
+    tokenInstance: {
+      collection: nft.collection,
+      category: nft.category,
+      type: nft.type,
+      additionalKey: nft.additionalKey,
+      instance: '0',
+    },
+    quantities: [{
+      user: props.fulfillerAddress,
+      quantity: new BigNumber(supply).toString(),
+    }],
+    allowanceType: 4,
+    uses: new BigNumber(supply).toString(),
+  }
 })
 
 watch(() => props.open, (isOpen) => {
@@ -241,6 +276,10 @@ async function handleSubmit() {
             <label class="block text-sm font-medium text-gray-700 mb-1">Max per Wallet</label>
             <input v-model="maxPerWallet" type="number" min="1" class="input w-full" placeholder="Unlimited" />
           </div>
+        </div>
+
+        <div v-if="grantAllowanceDtoForEstimate" class="pt-3 border-t border-gray-200">
+          <FeeEstimate method="GrantAllowance" :dto="grantAllowanceDtoForEstimate" />
         </div>
       </form>
 

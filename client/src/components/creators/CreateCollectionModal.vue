@@ -5,6 +5,7 @@ import { toTypedSchema } from '@vee-validate/zod'
 import { z } from 'zod'
 import { useNftCollectionAuth } from '@/composables/useNftCollectionAuth'
 import LoadingSpinner from '@/components/ui/LoadingSpinner.vue'
+import FeeEstimate from '@/components/ui/FeeEstimate.vue'
 
 interface Props {
   open: boolean
@@ -124,6 +125,35 @@ const canCreate = computed(() => createMeta.value.valid && !isCreating.value)
 
 const isLoading = computed(() => isClaiming.value || isCreating.value)
 const displayError = computed(() => localError.value || authError.value)
+
+// Inner DTO for CreateNftCollection fee estimation
+const createNftCollectionDtoForEstimate = computed(() => {
+  if (!claimedCollectionName.value || !category.value || !type.value || !name.value || !symbol.value || !image.value) return null
+  const dto: Record<string, unknown> = {
+    collection: claimedCollectionName.value,
+    category: category.value,
+    type: type.value,
+    additionalKey: additionalKey.value || 'none',
+    name: name.value,
+    symbol: symbol.value,
+    description: description.value || '',
+    image: image.value,
+  }
+  if (maxSupply.value && isFinite(Number(maxSupply.value)) && Number(maxSupply.value) > 0) {
+    dto.maxSupply = maxSupply.value
+  }
+  if (rarity.value) dto.rarity = rarity.value
+  return dto
+})
+
+// Inner DTO for GrantNftCollectionAuthorization fee estimation (step 1)
+const grantAuthorizationDtoForEstimate = computed(() => {
+  if (!collectionName.value) return null
+  return {
+    collection: collectionName.value,
+    authorizedUser: 'client|self',
+  }
+})
 
 // Collection key preview
 const collectionKeyPreview = computed(() => {
@@ -394,6 +424,9 @@ onUnmounted(() => {
               <p v-else class="mt-1 text-sm text-gray-500 dark:text-gray-400">
                 Letters, numbers, hyphens and underscores only. This will be your unique collection identifier.
               </p>
+            </div>
+            <div v-if="grantAuthorizationDtoForEstimate" class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+              <FeeEstimate method="GrantNftCollectionAuthorization" :dto="grantAuthorizationDtoForEstimate" />
             </div>
           </form>
 
@@ -706,6 +739,9 @@ onUnmounted(() => {
               <div v-if="description" class="pt-2 border-t border-gray-200 dark:border-gray-700">
                 <span class="text-sm text-gray-500 dark:text-gray-400 block mb-1">Description</span>
                 <p class="text-sm text-gray-900 dark:text-white">{{ description }}</p>
+              </div>
+              <div class="pt-2 border-t border-gray-200 dark:border-gray-700">
+                <FeeEstimate method="CreateNftCollection" :dto="createNftCollectionDtoForEstimate" />
               </div>
             </div>
 

@@ -6,6 +6,8 @@ import type { FungibleTokenDisplay } from '@shared/types/display'
 import { createTransferSchema, formatAmount } from '@/lib/schemas/transferSchema'
 import { useTransferToken } from '@/composables/useTransferToken'
 import LoadingSpinner from '@/components/ui/LoadingSpinner.vue'
+import FeeEstimate from '@/components/ui/FeeEstimate.vue'
+import BigNumber from 'bignumber.js'
 
 interface Props {
   token: FungibleTokenDisplay | null
@@ -56,6 +58,23 @@ amount.value = ''
 // Computed: form can submit
 const canSubmit = computed(() => {
   return meta.value.valid && !isTransferring.value && recipientAddress.value && amount.value
+})
+
+// Computed: inner DTO used for fee estimation via DryRun
+const transferDtoForEstimate = computed(() => {
+  if (!props.token || !recipientAddress.value || !amount.value || !fromAddress.value) return null
+  return {
+    from: fromAddress.value,
+    to: recipientAddress.value,
+    tokenInstance: {
+      collection: props.token.collection,
+      category: props.token.category,
+      type: props.token.type,
+      additionalKey: props.token.additionalKey,
+      instance: '0',
+    },
+    quantity: new BigNumber(amount.value).toString(),
+  }
 })
 
 // Computed: combined error
@@ -330,6 +349,9 @@ onUnmounted(() => {
                 >
                   {{ truncateAddress(recipientAddress) }}
                 </span>
+              </div>
+              <div class="pt-2 border-t border-gray-200 dark:border-gray-700">
+                <FeeEstimate method="TransferToken" :dto="transferDtoForEstimate" />
               </div>
             </div>
 
