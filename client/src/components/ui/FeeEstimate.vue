@@ -6,20 +6,26 @@
  * Usage:
  *   <FeeEstimate method="TransferToken" :dto="transferDto" />
  *
- * The component re-estimates whenever `method` or `dto` changes. When the
- * simulated operation would fail (e.g. insufficient balance), the fee is
- * still shown but a warning is displayed.
+ * The component debounces DryRun calls (default 400ms) and dedupes by the
+ * JSON-serialized DTO, so identical successive updates don't re-fire the request.
+ * Pass only fee-relevant fields in `dto` — cosmetic fields like description/image
+ * don't affect the fee and shouldn't be included.
  */
-import { watch, onMounted, computed } from 'vue'
+import { watch, onMounted, onUnmounted, computed, ref } from 'vue'
 import { useEstimateFee } from '@/composables/useEstimateFee'
 import LoadingSpinner from '@/components/ui/LoadingSpinner.vue'
 
-const props = defineProps<{
-  method: string
-  dto: object | null
-  /** Token symbol to show next to the fee (defaults to GALA). */
-  symbol?: string
-}>()
+const props = withDefaults(
+  defineProps<{
+    method: string
+    dto: object | null
+    /** Token symbol to show next to the fee (defaults to GALA). */
+    symbol?: string
+    /** Debounce delay in milliseconds before firing the DryRun (default 400). */
+    debounceMs?: number
+  }>(),
+  { debounceMs: 400 },
+)
 
 const {
   estimatedFee,
@@ -32,12 +38,44 @@ const {
   clear,
 } = useEstimateFee()
 
-async function refreshEstimate() {
+// Track the last DTO we actually submitted so we can dedupe identical updates
+let lastSubmittedKey: string | null = null
+let debounceTimer: ReturnType<typeof setTimeout> | null = null
+const pending = ref(false)
+
+function cancelPending() {
+  if (debounceTimer) {
+    clearTimeout(debounceTimer)
+    debounceTimer = null
+  }
+  pending.value = false
+}
+
+async function runEstimate() {
+  pending.value = false
   if (!props.dto) {
     clear()
+    lastSubmittedKey = null
     return
   }
+  const key = `${props.method}|${JSON.stringify(props.dto)}`
+  if (key === lastSubmittedKey) return
+  lastSubmittedKey = key
   await estimate(props.method, props.dto)
+}
+
+function scheduleEstimate() {
+  cancelPending()
+  if (!props.dto) {
+    clear()
+    lastSubmittedKey = null
+    return
+  }
+  // Skip scheduling if nothing fee-relevant changed
+  const key = `${props.method}|${JSON.stringify(props.dto)}`
+  if (key === lastSubmittedKey) return
+  pending.value = true
+  debounceTimer = setTimeout(runEstimate, props.debounceMs)
 }
 
 // Human-readable warning for simulation failures
@@ -45,7 +83,6 @@ const simulationWarning = computed(() => {
   if (simulationSucceeded.value) return null
   if (simulationErrorKey.value === 'PAYMENT_REQUIRED') return 'Insufficient balance to pay fee'
   if (simulationError.value) {
-    // Strip off any verbose chaincode prefix
     return simulationError.value.length > 100
       ? simulationError.value.slice(0, 97) + '...'
       : simulationError.value
@@ -53,15 +90,19 @@ const simulationWarning = computed(() => {
   return 'Simulated operation would fail'
 })
 
-onMounted(refreshEstimate)
-watch(() => [props.method, props.dto], refreshEstimate, { deep: true })
+// Show a subtle "estimating" state when either we're actively fetching OR debouncing
+const showEstimating = computed(() => isEstimating.value || pending.value)
+
+onMounted(scheduleEstimate)
+onUnmounted(cancelPending)
+watch(() => [props.method, props.dto], scheduleEstimate, { deep: true })
 </script>
 
 <template>
   <div class="text-sm">
     <div class="flex items-center justify-between py-2">
       <span class="text-gray-500 dark:text-gray-400">Estimated Fee</span>
-      <span v-if="isEstimating" class="flex items-center gap-1.5 text-gray-500">
+      <span v-if="showEstimating" class="flex items-center gap-1.5 text-gray-500">
         <LoadingSpinner size="sm" />
         <span>Estimating...</span>
       </span>
@@ -78,7 +119,7 @@ watch(() => [props.method, props.dto], refreshEstimate, { deep: true })
       <span v-else class="text-gray-400">—</span>
     </div>
     <p
-      v-if="!isEstimating && !error && simulationWarning"
+      v-if="!showEstimating && !error && simulationWarning"
       class="text-xs text-amber-600 flex items-start gap-1 pt-0.5"
     >
       <svg class="w-3.5 h-3.5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

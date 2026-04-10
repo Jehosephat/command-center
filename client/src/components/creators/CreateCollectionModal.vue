@@ -126,23 +126,25 @@ const canCreate = computed(() => createMeta.value.valid && !isCreating.value)
 const isLoading = computed(() => isClaiming.value || isCreating.value)
 const displayError = computed(() => localError.value || authError.value)
 
-// Inner DTO for CreateNftCollection fee estimation
+// Inner DTO for CreateNftCollection fee estimation.
+// Only includes fields that could affect the fee (token class key + supply).
+// Cosmetic fields (name/symbol/description/image/rarity) are stubbed so the
+// DryRun doesn't re-fire on every keystroke in those fields.
 const createNftCollectionDtoForEstimate = computed(() => {
-  if (!claimedCollectionName.value || !category.value || !type.value || !name.value || !symbol.value || !image.value) return null
+  if (!claimedCollectionName.value || !category.value || !type.value) return null
   const dto: Record<string, unknown> = {
     collection: claimedCollectionName.value,
     category: category.value,
     type: type.value,
     additionalKey: additionalKey.value || 'none',
-    name: name.value,
-    symbol: symbol.value,
-    description: description.value || '',
-    image: image.value,
+    name: 'x',
+    symbol: 'x',
+    description: '',
+    image: 'https://example.com/x.png',
   }
   if (maxSupply.value && isFinite(Number(maxSupply.value)) && Number(maxSupply.value) > 0) {
     dto.maxSupply = maxSupply.value
   }
-  if (rarity.value) dto.rarity = rarity.value
   return dto
 })
 
