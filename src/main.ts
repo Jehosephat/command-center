@@ -1,5 +1,7 @@
 import * as crypto from 'crypto';
-Object.assign(global, { crypto });
+if (!(globalThis as { crypto?: unknown }).crypto) {
+  Object.assign(globalThis, { crypto });
+}
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { mkdirSync } from 'fs';

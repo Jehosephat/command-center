@@ -23,7 +23,7 @@ describe('configuration', () => {
 
       expect(config.port).toBe(3000);
       expect(config.galachain.env).toBe('stage');
-      expect(config.galachain.gatewayUrl).toBe('https://gateway-testnet.galachain.com/api/testnet01/gc-a9b8b472b035c0510508c248d1110d3162b7e5f4-GalaChainToken');
+      expect(config.galachain.gatewayUrl).toBe('https://galachain-gateway-chain-platform-stage-chain-platform-eks.stage.galachain.com/api/asset/token-contract');
     });
   });
 
@@ -97,7 +97,7 @@ describe('configuration', () => {
     it('should use stage defaults when GALACHAIN_ENV is stage', () => {
       process.env.GALACHAIN_ENV = 'stage';
       const config = configuration();
-      expect(config.galachain.gatewayUrl).toBe('https://gateway-testnet.galachain.com/api/testnet01/gc-a9b8b472b035c0510508c248d1110d3162b7e5f4-GalaChainToken');
+      expect(config.galachain.gatewayUrl).toBe('https://galachain-gateway-chain-platform-stage-chain-platform-eks.stage.galachain.com/api/asset/token-contract');
     });
 
     it('should use production defaults when GALACHAIN_ENV is production', () => {

@@ -30,7 +30,7 @@ vi.mock('@/lib/config', async () => {
       gatewayUrl: 'https://gateway-mainnet.galachain.com/api/asset/token-contract',
     },
     stage: {
-      gatewayUrl: 'https://gateway-testnet.galachain.com/api/testnet01/gc-a9b8b472b035c0510508c248d1110d3162b7e5f4-GalaChainToken',
+      gatewayUrl: 'https://galachain-gateway-chain-platform-stage-chain-platform-eks.stage.galachain.com/api/asset/token-contract',
     },
   };
 
@@ -61,7 +61,7 @@ describe('client config', () => {
       const { config } = await import('@/lib/config');
 
       expect(config.galachain.env).toBe('stage');
-      expect(config.galachain.gatewayUrl).toBe('https://gateway-testnet.galachain.com/api/testnet01/gc-a9b8b472b035c0510508c248d1110d3162b7e5f4-GalaChainToken');
+      expect(config.galachain.gatewayUrl).toBe('https://galachain-gateway-chain-platform-stage-chain-platform-eks.stage.galachain.com/api/asset/token-contract');
     });
 
     it('should return empty apiBaseUrl by default', async () => {
@@ -100,7 +100,7 @@ describe('client config', () => {
     it('should fallback to default for invalid gateway URL', async () => {
       mockEnv.VITE_GALACHAIN_GATEWAY_URL = 'not-a-url';
       const { config } = await import('@/lib/config');
-      expect(config.galachain.gatewayUrl).toBe('https://gateway-testnet.galachain.com/api/testnet01/gc-a9b8b472b035c0510508c248d1110d3162b7e5f4-GalaChainToken');
+      expect(config.galachain.gatewayUrl).toBe('https://galachain-gateway-chain-platform-stage-chain-platform-eks.stage.galachain.com/api/asset/token-contract');
     });
   });
 

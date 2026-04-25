@@ -193,7 +193,7 @@ describe('MarketplaceService', () => {
   // ============================================================================
 
   describe('executePurchase', () => {
-    const testGatewayUrl = 'https://gateway-testnet.galachain.com/api/testnet01/gc-test';
+    const testGatewayUrl = 'https://galachain-gateway-chain-platform-stage-chain-platform-eks.stage.galachain.com/api/asset/token-contract';
     const validTransferDto = {
       from: 'eth|buyer',
       to: 'eth|fulfiller',

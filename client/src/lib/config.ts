@@ -19,7 +19,7 @@ const GALACHAIN_DEFAULTS: Record<GalaChainEnv, { gatewayUrl: string }> = {
     gatewayUrl: 'https://gateway-mainnet.galachain.com/api/asset/token-contract',
   },
   stage: {
-    gatewayUrl: 'https://gateway-testnet.galachain.com/api/testnet01/gc-a9b8b472b035c0510508c248d1110d3162b7e5f4-GalaChainToken',
+    gatewayUrl: 'https://galachain-gateway-chain-platform-stage-chain-platform-eks.stage.galachain.com/api/asset/token-contract',
   },
 };
 

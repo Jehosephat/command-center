@@ -43,7 +43,7 @@ export const mockGalaChainClient = {
   mint: mockMint,
   burn: mockBurn,
   createCollection: mockCreateCollection,
-  getTokenApiUrl: vi.fn().mockReturnValue('https://gateway-testnet.galachain.com/api/testnet01/gc-a9b8b472b035c0510508c248d1110d3162b7e5f4-GalaChainToken'),
+  getTokenApiUrl: vi.fn().mockReturnValue('https://galachain-gateway-chain-platform-stage-chain-platform-eks.stage.galachain.com/api/asset/token-contract'),
   createTokenApi: vi.fn(),
   generateUniqueKey: vi.fn().mockReturnValue('test-unique-key'),
 };
