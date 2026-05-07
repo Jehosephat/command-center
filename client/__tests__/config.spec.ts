@@ -30,7 +30,7 @@ vi.mock('@/lib/config', async () => {
       gatewayUrl: 'https://gateway-mainnet.galachain.com/api/asset/token-contract',
     },
     stage: {
-      gatewayUrl: 'https://galachain-gateway-chain-platform-stage-chain-platform-eks.stage.galachain.com/api/asset/token-contract',
+      gatewayUrl: 'https://galachain-gateway-production.stage.internal.us-east-va-1.galachain.com/api/asset/token-contract',
     },
   };
 
@@ -61,7 +61,7 @@ describe('client config', () => {
       const { config } = await import('@/lib/config');
 
       expect(config.galachain.env).toBe('stage');
-      expect(config.galachain.gatewayUrl).toBe('https://galachain-gateway-chain-platform-stage-chain-platform-eks.stage.galachain.com/api/asset/token-contract');
+      expect(config.galachain.gatewayUrl).toBe('https://galachain-gateway-production.stage.internal.us-east-va-1.galachain.com/api/asset/token-contract');
     });
 
     it('should return empty apiBaseUrl by default', async () => {
@@ -100,7 +100,7 @@ describe('client config', () => {
     it('should fallback to default for invalid gateway URL', async () => {
       mockEnv.VITE_GALACHAIN_GATEWAY_URL = 'not-a-url';
       const { config } = await import('@/lib/config');
-      expect(config.galachain.gatewayUrl).toBe('https://galachain-gateway-chain-platform-stage-chain-platform-eks.stage.galachain.com/api/asset/token-contract');
+      expect(config.galachain.gatewayUrl).toBe('https://galachain-gateway-production.stage.internal.us-east-va-1.galachain.com/api/asset/token-contract');
     });
   });
 

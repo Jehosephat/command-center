@@ -5,7 +5,7 @@ export type NetworkType = 'mainnet' | 'testnet'
 
 const GATEWAY_URLS: Record<NetworkType, string> = {
   mainnet: 'https://gateway-mainnet.galachain.com/api/asset/token-contract',
-  testnet: 'https://galachain-gateway-chain-platform-stage-chain-platform-eks.stage.galachain.com/api/asset/token-contract',
+  testnet: 'https://galachain-gateway-production.stage.internal.us-east-va-1.galachain.com/api/asset/token-contract',
 }
 
 const STORAGE_KEY = 'galachain-network'
