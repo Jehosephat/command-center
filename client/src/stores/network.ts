@@ -5,7 +5,7 @@ export type NetworkType = 'mainnet' | 'testnet'
 
 const GATEWAY_URLS: Record<NetworkType, string> = {
   mainnet: 'https://gateway-mainnet.galachain.com/api/asset/token-contract',
-  testnet: 'https://galachain-gateway-production.stage.internal.us-east-va-1.galachain.com/api/asset/token-contract',
+  testnet: 'https://gateway-testnet.galachain.com/api/asset/token-contract',
 }
 
 const STORAGE_KEY = 'galachain-network'
@@ -30,6 +30,9 @@ export const useNetworkStore = defineStore('network', () => {
   const isMainnet = computed(() => network.value === 'mainnet')
   const isTestnet = computed(() => network.value === 'testnet')
   const gatewayUrl = computed(() => GATEWAY_URLS[network.value])
+  const publicKeyGatewayUrl = computed(() =>
+    gatewayUrl.value.replace(/\/token-contract\/?$/i, '/public-key-contract'),
+  )
   const networkLabel = computed(() => network.value === 'mainnet' ? 'Mainnet' : 'Testnet')
 
   // Actions
@@ -49,6 +52,7 @@ export const useNetworkStore = defineStore('network', () => {
     isMainnet,
     isTestnet,
     gatewayUrl,
+    publicKeyGatewayUrl,
     networkLabel,
     // Actions
     setNetwork,

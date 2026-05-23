@@ -43,7 +43,8 @@ export function useEstimateFee() {
    * check simulationSucceeded to know whether the operation would actually go through.
    */
   async function estimate(method: string, dto: object): Promise<string | null> {
-    if (!walletStore.address) {
+    const signer = walletStore.chainIdentity
+    if (!signer) {
       error.value = 'Wallet not connected'
       return null
     }
@@ -52,7 +53,7 @@ export function useEstimateFee() {
     error.value = null
 
     try {
-      const result = await estimateFeeApi(method, walletStore.address, dto)
+      const result = await estimateFeeApi(method, signer, dto)
       estimatedFee.value = result.totalFee
       receipts.value = result.receipts
       simulationSucceeded.value = result.simulationSucceeded

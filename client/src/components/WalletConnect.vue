@@ -7,6 +7,7 @@ const {
   isConnecting,
   error,
   address,
+  alias,
   truncatedAddress,
   connect,
   disconnect,
@@ -16,6 +17,7 @@ const {
 
 // Copy state
 const copied = ref(false)
+const aliasCopied = ref(false)
 
 async function copyAddress() {
   if (!address.value) return
@@ -27,6 +29,19 @@ async function copyAddress() {
     }, 2000)
   } catch (err) {
     console.error('Failed to copy address:', err)
+  }
+}
+
+async function copyAlias() {
+  if (!alias.value) return
+  try {
+    await navigator.clipboard.writeText(alias.value)
+    aliasCopied.value = true
+    setTimeout(() => {
+      aliasCopied.value = false
+    }, 2000)
+  } catch (err) {
+    console.error('Failed to copy alias:', err)
   }
 }
 
@@ -128,8 +143,57 @@ function handleDisconnect() {
     <!-- Dropdown Menu -->
     <div
       v-if="connected && showDropdown"
-      class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50"
+      class="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50"
     >
+      <!-- Alias Row (only shown when resolved) -->
+      <div
+        v-if="alias"
+        class="px-4 py-2 border-b border-gray-200 dark:border-gray-700"
+      >
+        <div class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-0.5">
+          Alias
+        </div>
+        <button
+          @click="copyAlias"
+          class="w-full text-left flex items-center gap-2 group"
+          :title="alias"
+        >
+          <span class="text-sm font-mono text-gray-700 dark:text-gray-200 truncate flex-1">
+            {{ alias }}
+          </span>
+          <svg
+            v-if="!aliasCopied"
+            class="h-3.5 w-3.5 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 flex-shrink-0"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+            />
+          </svg>
+          <svg
+            v-else
+            class="h-3.5 w-3.5 text-green-500 flex-shrink-0"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M5 13l4 4L19 7"
+            />
+          </svg>
+        </button>
+      </div>
+
       <!-- Copy Address Button -->
       <button
         @click="copyAddress"

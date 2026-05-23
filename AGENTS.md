@@ -74,7 +74,7 @@ This is a single deployable unit. NestJS serves the Vue static build for all non
 Defined in `client/src/stores/network.ts`. User can toggle at runtime.
 
 - **Mainnet**: `https://gateway-mainnet.galachain.com/api/asset/token-contract`
-- **Testnet**: `https://galachain-gateway-production.stage.internal.us-east-va-1.galachain.com/api/asset/token-contract`
+- **Testnet**: `https://gateway-testnet.galachain.com/api/asset/token-contract`
 
 All API calls are `POST {gatewayUrl}/{MethodName}` with a JSON body.
 

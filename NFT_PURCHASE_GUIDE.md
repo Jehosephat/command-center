@@ -45,7 +45,7 @@ GalaChain uses `eth|` prefixed addresses: `eth|65862110e4Ef4933194dea8bFC07974Be
 All operations are HTTP POST to `{gatewayUrl}/{MethodName}`. Response: `{ Status: 1, Data: ... }` on success.
 
 - Mainnet: `https://gateway-mainnet.galachain.com/api/asset/token-contract`
-- Testnet: `https://galachain-gateway-production.stage.internal.us-east-va-1.galachain.com/api/asset/token-contract`
+- Testnet: `https://gateway-testnet.galachain.com/api/asset/token-contract`
 
 ## Setup
 

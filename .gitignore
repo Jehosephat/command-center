@@ -27,6 +27,12 @@ npm-debug.log*
 # Test coverage
 coverage/
 
+# Local database (auto-created by the server on startup)
+data/*.sqlite
+data/*.sqlite-journal
+data/*.sqlite-wal
+data/*.sqlite-shm
+
 # Misc
 *.tsbuildinfo
 

@@ -12,6 +12,7 @@ export function useWallet() {
   const {
     connected,
     address,
+    alias,
     publicKey,
     isConnecting,
     error,
@@ -27,6 +28,7 @@ export function useWallet() {
     // State (reactive refs)
     connected,
     address,
+    alias,
     publicKey,
     isConnecting,
     error,
