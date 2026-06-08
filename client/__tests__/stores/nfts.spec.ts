@@ -187,7 +187,7 @@ describe('nfts store', () => {
       store.setBalances(mockNFTBalances)
 
       // Set filter to TestCollection
-      store.setCollectionFilter('TestCollection|Item|Sword|')
+      store.setCollectionFilter('TestCollection')
 
       expect(store.filteredNFTs.length).toBe(3)
       expect(store.filteredNFTs.every(nft => nft.collection === 'TestCollection')).toBe(true)
@@ -264,14 +264,14 @@ describe('nfts store', () => {
   describe('setCollectionFilter action', () => {
     it('should set the selected collection filter', () => {
       const store = useNFTsStore()
-      store.setCollectionFilter('TestCollection|Item|Sword|')
+      store.setCollectionFilter('TestCollection')
 
-      expect(store.selectedCollection).toBe('TestCollection|Item|Sword|')
+      expect(store.selectedCollection).toBe('TestCollection')
     })
 
     it('should clear the filter when null is passed', () => {
       const store = useNFTsStore()
-      store.setCollectionFilter('TestCollection|Item|Sword|')
+      store.setCollectionFilter('TestCollection')
       store.setCollectionFilter(null)
 
       expect(store.selectedCollection).toBe(null)
@@ -281,7 +281,7 @@ describe('nfts store', () => {
   describe('clearFilter action', () => {
     it('should clear the selected collection filter', () => {
       const store = useNFTsStore()
-      store.setCollectionFilter('TestCollection|Item|Sword|')
+      store.setCollectionFilter('TestCollection')
       store.clearFilter()
 
       expect(store.selectedCollection).toBe(null)
@@ -330,7 +330,7 @@ describe('nfts store', () => {
     it('should reset all state', () => {
       const store = useNFTsStore()
       store.setBalances(mockNFTBalances)
-      store.setCollectionFilter('TestCollection|Item|Sword|')
+      store.setCollectionFilter('TestCollection')
       store.setError('Some error')
       store.setSort('instance-desc')
 
@@ -390,7 +390,7 @@ describe('nfts store', () => {
     it('should return correct filtered count', () => {
       const store = useNFTsStore()
       store.setBalances(mockNFTBalances)
-      store.setCollectionFilter('TestCollection|Item|Sword|')
+      store.setCollectionFilter('TestCollection')
 
       expect(store.filteredCount).toBe(3)
     })

@@ -14,3 +14,5 @@ Also in the creators area, FTs can't be created here so don't show that option. 
 When choosing to transfer a token, balance is shown but looks to be divided by 100M (10^8) (so it's handling decimals improperly). The quantity value of a balance is the actual value of tokens.
 
 Owned tokens should have an option to burn as well as the already built transfer
+
+Integrate swap-based marketplace

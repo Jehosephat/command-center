@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import NFTGrid from '@/components/nfts/NFTGrid.vue'
 import CollectionFilter from '@/components/nfts/CollectionFilter.vue'
+import ChannelFilter from '@/components/nfts/ChannelFilter.vue'
 import NFTSortDropdown from '@/components/nfts/NFTSortDropdown.vue'
+import NFTPagination from '@/components/nfts/NFTPagination.vue'
 import TransferNFTModal from '@/components/nfts/TransferNFTModal.vue'
 import MintNFTModal from '@/components/nfts/MintNFTModal.vue'
 import BurnNFTModal from '@/components/nfts/BurnNFTModal.vue'
@@ -15,18 +17,28 @@ import type { NFTDisplay, CollectionDisplay } from '@shared/types/display'
 const {
   nfts,
   collections,
+  channels,
   selectedCollection,
+  selectedChannel,
   isLoading,
   error,
   sortBy,
   isConnected,
   totalNFTCount,
   filteredCount,
+  pageSize,
+  currentPage,
+  totalPages,
   fetchAll,
   setSort,
   setCollectionFilter,
+  setChannelFilter,
   clearFilter,
+  setPageSize,
+  setPage,
 } = useNFTs()
+
+const hasActiveFilter = computed(() => !!selectedCollection.value || !!selectedChannel.value)
 
 // NFT mint authority
 const { hasAnyMintAuthority } = useNFTMintAuthority()
@@ -170,7 +182,7 @@ async function handleRefresh(): Promise<void> {
       <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <!-- Count Display -->
         <div class="text-sm text-gray-600 dark:text-gray-400">
-          <span v-if="selectedCollection">
+          <span v-if="hasActiveFilter">
             Showing {{ filteredCount }} of {{ totalNFTCount }} NFTs
           </span>
           <span v-else-if="totalNFTCount > 0">
@@ -179,7 +191,15 @@ async function handleRefresh(): Promise<void> {
         </div>
 
         <!-- Filter & Sort Controls -->
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
+          <!-- Channel Filter -->
+          <ChannelFilter
+            v-if="channels.length > 1"
+            :channels="channels"
+            :model-value="selectedChannel"
+            @update:model-value="setChannelFilter"
+          />
+
           <!-- Collection Filter -->
           <CollectionFilter
             v-if="collections.length > 1"
@@ -190,9 +210,9 @@ async function handleRefresh(): Promise<void> {
 
           <!-- Clear Filter Button -->
           <button
-            v-if="selectedCollection"
+            v-if="hasActiveFilter"
             class="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            title="Clear filter"
+            title="Clear filters"
             @click="clearFilter"
           >
             <svg
@@ -247,6 +267,17 @@ async function handleRefresh(): Promise<void> {
         :is-loading="isLoading"
         @transfer="handleTransfer"
         @burn="handleBurn"
+      />
+
+      <!-- Pagination -->
+      <NFTPagination
+        v-if="filteredCount > 0"
+        :current-page="currentPage"
+        :total-pages="totalPages"
+        :page-size="pageSize"
+        :filtered-count="filteredCount"
+        @update:page="setPage"
+        @update:page-size="setPageSize"
       />
     </template>
 

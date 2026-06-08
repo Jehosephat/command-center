@@ -4,15 +4,15 @@ import CollectionFilter from '@/components/nfts/CollectionFilter.vue'
 import type { CollectionDisplay } from '@shared/types/display'
 
 describe('CollectionFilter', () => {
-  // Mock collections data
+  // Mock collections data — collectionKey is now just the collection name
   const mockCollections: CollectionDisplay[] = [
     {
-      collectionKey: 'TestCollection|Item|Sword|',
+      collectionKey: 'TestCollection',
       collection: 'TestCollection',
-      category: 'Item',
-      type: 'Sword',
+      category: '',
+      type: '',
       additionalKey: '',
-      name: 'Test Swords',
+      name: 'TestCollection',
       symbol: 'SWORD',
       description: '',
       image: '',
@@ -24,12 +24,12 @@ describe('CollectionFilter', () => {
       ownedCount: 5,
     },
     {
-      collectionKey: 'AnotherCollection|Avatar|Character|',
+      collectionKey: 'AnotherCollection',
       collection: 'AnotherCollection',
-      category: 'Avatar',
-      type: 'Character',
+      category: '',
+      type: '',
       additionalKey: '',
-      name: 'Characters',
+      name: 'AnotherCollection',
       symbol: 'CHAR',
       description: '',
       image: '',
@@ -68,12 +68,12 @@ describe('CollectionFilter', () => {
     const wrapper = mount(CollectionFilter, {
       props: {
         collections: mockCollections,
-        modelValue: 'TestCollection|Item|Sword|',
+        modelValue: 'TestCollection',
       },
     })
 
     const button = wrapper.find('button')
-    expect(button.text()).toContain('Test Swords')
+    expect(button.text()).toContain('TestCollection')
   })
 
   it('should toggle dropdown when button is clicked', async () => {
@@ -100,7 +100,7 @@ describe('CollectionFilter', () => {
     const wrapper = mount(CollectionFilter, {
       props: {
         collections: mockCollections,
-        modelValue: 'TestCollection|Item|Sword|',
+        modelValue: 'TestCollection',
       },
     })
 
@@ -127,11 +127,11 @@ describe('CollectionFilter', () => {
     await wrapper.find('button').trigger('click')
 
     // Find and click the second collection (after "All Collections" and hr)
-    const collectionButtons = wrapper.findAll('.py-1 button').filter(b => b.text().includes('Test Swords'))
+    const collectionButtons = wrapper.findAll('.py-1 button').filter(b => b.text().includes('TestCollection'))
     await collectionButtons[0].trigger('click')
 
     expect(wrapper.emitted('update:modelValue')).toBeTruthy()
-    expect(wrapper.emitted('update:modelValue')![0]).toEqual(['TestCollection|Item|Sword|'])
+    expect(wrapper.emitted('update:modelValue')![0]).toEqual(['TestCollection'])
   })
 
   it('should display owned count for each collection', async () => {
@@ -153,7 +153,7 @@ describe('CollectionFilter', () => {
     const wrapper = mount(CollectionFilter, {
       props: {
         collections: mockCollections,
-        modelValue: 'TestCollection|Item|Sword|',
+        modelValue: 'TestCollection',
       },
     })
 
@@ -161,7 +161,7 @@ describe('CollectionFilter', () => {
     await wrapper.find('button').trigger('click')
 
     // Find the selected collection button
-    const selectedButton = wrapper.findAll('.py-1 button').find(b => b.text().includes('Test Swords'))
+    const selectedButton = wrapper.findAll('.py-1 button').find(b => b.text().includes('TestCollection'))
     expect(selectedButton?.classes()).toContain('text-gala-primary')
   })
 
@@ -178,7 +178,7 @@ describe('CollectionFilter', () => {
     expect(wrapper.find('.py-1').exists()).toBe(true)
 
     // Select a collection
-    const collectionButtons = wrapper.findAll('.py-1 button').filter(b => b.text().includes('Test Swords'))
+    const collectionButtons = wrapper.findAll('.py-1 button').filter(b => b.text().includes('TestCollection'))
     await collectionButtons[0].trigger('click')
 
     // Dropdown should be closed

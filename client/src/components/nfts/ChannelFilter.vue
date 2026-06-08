@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import type { CollectionDisplay } from '@shared/types/display'
 
 interface Props {
-  collections: CollectionDisplay[]
+  channels: string[]
   modelValue: string | null
 }
 
@@ -16,19 +15,13 @@ const emit = defineEmits<{
 const isOpen = ref(false)
 const dropdownRef = ref<HTMLElement | null>(null)
 
-// Find the selected collection for display
-const selectedCollectionName = computed(() => {
-  if (!props.modelValue) return 'All Collections'
-  const collection = props.collections.find(c => c.collectionKey === props.modelValue)
-  return collection?.collection || props.modelValue
-})
+const selectedLabel = computed(() => props.modelValue || 'All Channels')
 
-function selectCollection(collectionKey: string | null): void {
-  emit('update:modelValue', collectionKey)
+function selectChannel(channel: string | null): void {
+  emit('update:modelValue', channel)
   isOpen.value = false
 }
 
-// Close dropdown when clicking outside
 function handleClickOutside(event: MouseEvent): void {
   if (dropdownRef.value && !dropdownRef.value.contains(event.target as Node)) {
     isOpen.value = false
@@ -49,7 +42,6 @@ onUnmounted(() => {
     ref="dropdownRef"
     class="relative"
   >
-    <!-- Dropdown Button -->
     <button
       class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
       @click="isOpen = !isOpen"
@@ -64,10 +56,10 @@ onUnmounted(() => {
           stroke-linecap="round"
           stroke-linejoin="round"
           stroke-width="2"
-          d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+          d="M4 7h16M4 12h16M4 17h7"
         />
       </svg>
-      <span class="max-w-32 truncate">{{ selectedCollectionName }}</span>
+      <span class="max-w-32 truncate">{{ selectedLabel }}</span>
       <svg
         class="w-4 h-4 transition-transform"
         :class="{ 'rotate-180': isOpen }"
@@ -84,7 +76,6 @@ onUnmounted(() => {
       </svg>
     </button>
 
-    <!-- Dropdown Menu -->
     <Transition
       enter-active-class="transition ease-out duration-100"
       enter-from-class="transform opacity-0 scale-95"
@@ -95,19 +86,18 @@ onUnmounted(() => {
     >
       <div
         v-if="isOpen"
-        class="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10 max-h-80 overflow-auto"
+        class="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10 max-h-80 overflow-auto"
       >
         <div class="py-1">
-          <!-- All Collections Option -->
           <button
             class="w-full flex items-center justify-between px-4 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             :class="{
               'text-gala-primary font-medium': !modelValue,
               'text-gray-700 dark:text-gray-300': modelValue
             }"
-            @click="selectCollection(null)"
+            @click="selectChannel(null)"
           >
-            <span>All Collections</span>
+            <span>All Channels</span>
             <svg
               v-if="!modelValue"
               class="w-4 h-4"
@@ -126,27 +116,19 @@ onUnmounted(() => {
 
           <hr class="my-1 border-gray-200 dark:border-gray-700" />
 
-          <!-- Collection Options -->
           <button
-            v-for="collection in collections"
-            :key="collection.collectionKey"
+            v-for="channel in channels"
+            :key="channel"
             class="w-full flex items-center justify-between px-4 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             :class="{
-              'text-gala-primary font-medium': modelValue === collection.collectionKey,
-              'text-gray-700 dark:text-gray-300': modelValue !== collection.collectionKey
+              'text-gala-primary font-medium': modelValue === channel,
+              'text-gray-700 dark:text-gray-300': modelValue !== channel
             }"
-            @click="selectCollection(collection.collectionKey)"
+            @click="selectChannel(channel)"
           >
-            <div class="flex-1 min-w-0">
-              <div class="truncate" :title="collection.collection">
-                {{ collection.collection }}
-              </div>
-              <div class="text-xs text-gray-500 dark:text-gray-400">
-                {{ collection.ownedCount }} owned
-              </div>
-            </div>
+            <span class="truncate">{{ channel }}</span>
             <svg
-              v-if="modelValue === collection.collectionKey"
+              v-if="modelValue === channel"
               class="w-4 h-4 flex-shrink-0 ml-2"
               fill="none"
               viewBox="0 0 24 24"
@@ -161,12 +143,11 @@ onUnmounted(() => {
             </svg>
           </button>
 
-          <!-- Empty State -->
           <div
-            v-if="collections.length === 0"
+            v-if="channels.length === 0"
             class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 text-center"
           >
-            No collections found
+            No channels found
           </div>
         </div>
       </div>

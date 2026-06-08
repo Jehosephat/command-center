@@ -27,6 +27,10 @@ interface TokenBalanceData {
  */
 export type NFTSortOption = 'collection-asc' | 'collection-desc' | 'instance-asc' | 'instance-desc' | 'name-asc' | 'name-desc'
 
+/** Allowed NFT page sizes */
+export const NFT_PAGE_SIZES = [10, 25, 50] as const
+export type NFTPageSize = (typeof NFT_PAGE_SIZES)[number]
+
 /**
  * Convert a TokenBalance (with NFT instance) to NFTDisplay
  */
@@ -91,28 +95,30 @@ function toNFTDisplay(
 }
 
 /**
- * Extract unique collections from NFT balances
- * Now preserves metadata like image, description, etc.
+ * Extract unique collections from NFT balances, keyed by the `collection`
+ * field only (the first part of the TokenClassKey). All category/type/
+ * additionalKey variants of the same collection are grouped together.
+ *
+ * Metadata (name, image, etc.) is taken from the first NFT encountered for
+ * each collection — token classes within one collection often share these.
  */
 function extractCollections(nfts: NFTDisplay[]): CollectionDisplay[] {
   const collectionMap = new Map<string, CollectionDisplay>()
 
   for (const nft of nfts) {
-    const collectionKey = `${nft.collection}|${nft.category}|${nft.type}|${nft.additionalKey}`
+    const collectionKey = nft.collection
 
-    if (collectionMap.has(collectionKey)) {
-      // Increment owned count
-      const existing = collectionMap.get(collectionKey)!
+    const existing = collectionMap.get(collectionKey)
+    if (existing) {
       existing.ownedCount++
     } else {
-      // Create new collection entry with metadata from the NFT
       collectionMap.set(collectionKey, {
         collectionKey,
         collection: nft.collection,
-        category: nft.category,
-        type: nft.type,
-        additionalKey: nft.additionalKey,
-        name: nft.name,
+        category: '',
+        type: '',
+        additionalKey: '',
+        name: nft.collection,
         symbol: nft.symbol,
         description: nft.description,
         image: nft.image,
@@ -120,7 +126,7 @@ function extractCollections(nfts: NFTDisplay[]): CollectionDisplay[] {
         maxSupply: '0',
         totalSupply: '0',
         totalBurned: '0',
-        isAuthority: false, // Would need to check authority
+        isAuthority: false,
         ownedCount: 1,
       })
     }
@@ -137,10 +143,13 @@ export const useNFTsStore = defineStore('nfts', () => {
   const nfts = ref<NFTDisplay[]>([])
   const collections = ref<CollectionDisplay[]>([])
   const selectedCollection = ref<string | null>(null)
+  const selectedChannel = ref<string | null>(null)
   const isLoading = ref(false)
   const error = ref<string | null>(null)
   const sortBy = ref<NFTSortOption>('collection-asc')
   const lastFetched = ref<number | null>(null)
+  const pageSize = ref<NFTPageSize>(10)
+  const currentPage = ref(1)
 
   // Raw data from API (for re-processing when allowances change), keyed by channel.
   // Use TokenBalanceAny to handle both @gala-chain/connect and @gala-chain/api versions
@@ -151,17 +160,24 @@ export const useNFTsStore = defineStore('nfts', () => {
 
   // Getters
   const filteredNFTs = computed(() => {
-    let result = [...nfts.value]
+    let result = nfts.value
 
-    // Apply collection filter
     if (selectedCollection.value) {
-      result = result.filter(nft => {
-        const nftCollectionKey = `${nft.collection}|${nft.category}|${nft.type}|${nft.additionalKey}`
-        return nftCollectionKey === selectedCollection.value
-      })
+      result = result.filter(nft => nft.collection === selectedCollection.value)
+    }
+
+    if (selectedChannel.value) {
+      result = result.filter(nft => nft.channel === selectedChannel.value)
     }
 
     return result
+  })
+
+  /** Channels that have at least one NFT in the current fetch, deduped, sorted. */
+  const availableChannels = computed(() => {
+    const set = new Set<string>()
+    for (const nft of nfts.value) set.add(nft.channel)
+    return Array.from(set).sort((a, b) => a.localeCompare(b))
   })
 
   const sortedNFTs = computed(() => {
@@ -169,17 +185,9 @@ export const useNFTsStore = defineStore('nfts', () => {
 
     switch (sortBy.value) {
       case 'collection-asc':
-        return sorted.sort((a, b) => {
-          const aKey = `${a.collection}|${a.category}|${a.type}|${a.additionalKey}`
-          const bKey = `${b.collection}|${b.category}|${b.type}|${b.additionalKey}`
-          return aKey.localeCompare(bKey)
-        })
+        return sorted.sort((a, b) => a.collection.localeCompare(b.collection))
       case 'collection-desc':
-        return sorted.sort((a, b) => {
-          const aKey = `${a.collection}|${a.category}|${a.type}|${a.additionalKey}`
-          const bKey = `${b.collection}|${b.category}|${b.type}|${b.additionalKey}`
-          return bKey.localeCompare(aKey)
-        })
+        return sorted.sort((a, b) => b.collection.localeCompare(a.collection))
       case 'instance-asc':
         return sorted.sort((a, b) => {
           const aInstance = new BigNumber(a.instance)
@@ -208,6 +216,17 @@ export const useNFTsStore = defineStore('nfts', () => {
   const totalNFTCount = computed(() => nfts.value.length)
 
   const filteredCount = computed(() => filteredNFTs.value.length)
+
+  /** Total number of pages given the current pageSize and filtered set. */
+  const totalPages = computed(() =>
+    Math.max(1, Math.ceil(filteredCount.value / pageSize.value)),
+  )
+
+  /** Slice of sortedNFTs for the current page. */
+  const pagedNFTs = computed(() => {
+    const start = (currentPage.value - 1) * pageSize.value
+    return sortedNFTs.value.slice(start, start + pageSize.value)
+  })
 
   // Actions
 
@@ -343,13 +362,22 @@ export const useNFTsStore = defineStore('nfts', () => {
    */
   function setSort(option: NFTSortOption): void {
     sortBy.value = option
+    currentPage.value = 1
   }
 
   /**
-   * Set collection filter
+   * Set collection filter (matches by `collection` field — the first part of
+   * the TokenClassKey). Pass null to clear.
    */
-  function setCollectionFilter(collectionKey: string | null): void {
-    selectedCollection.value = collectionKey
+  function setCollectionFilter(collection: string | null): void {
+    selectedCollection.value = collection
+    currentPage.value = 1
+  }
+
+  /** Set channel filter (e.g. 'asset', 'mirandus'). Pass null to clear. */
+  function setChannelFilter(channel: string | null): void {
+    selectedChannel.value = channel
+    currentPage.value = 1
   }
 
   /**
@@ -357,6 +385,20 @@ export const useNFTsStore = defineStore('nfts', () => {
    */
   function clearFilter(): void {
     selectedCollection.value = null
+    selectedChannel.value = null
+    currentPage.value = 1
+  }
+
+  /** Set the page size and reset to page 1. */
+  function setPageSize(size: NFTPageSize): void {
+    pageSize.value = size
+    currentPage.value = 1
+  }
+
+  /** Jump to a specific page (clamped to [1, totalPages]). */
+  function setPage(page: number): void {
+    const max = totalPages.value
+    currentPage.value = Math.min(Math.max(1, page), max)
   }
 
   /**
@@ -366,6 +408,8 @@ export const useNFTsStore = defineStore('nfts', () => {
     nfts.value = []
     collections.value = []
     selectedCollection.value = null
+    selectedChannel.value = null
+    currentPage.value = 1
     rawBalancesByChannel = new Map()
     rawBalancesWithMetadataByChannel = new Map()
     rawBurnAllowances = []
@@ -394,17 +438,23 @@ export const useNFTsStore = defineStore('nfts', () => {
     nfts,
     collections,
     selectedCollection,
+    selectedChannel,
     isLoading,
     error,
     sortBy,
     lastFetched,
+    pageSize,
+    currentPage,
 
     // Getters
     filteredNFTs,
     sortedNFTs,
+    pagedNFTs,
+    availableChannels,
     hasNFTs,
     totalNFTCount,
     filteredCount,
+    totalPages,
 
     // Actions
     setBalances,
@@ -415,7 +465,10 @@ export const useNFTsStore = defineStore('nfts', () => {
     setError,
     setSort,
     setCollectionFilter,
+    setChannelFilter,
     clearFilter,
+    setPageSize,
+    setPage,
     clearNFTs,
     getNFTByKey,
     needsRefresh,

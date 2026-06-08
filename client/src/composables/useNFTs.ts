@@ -8,7 +8,7 @@
 import { computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { AllowanceType } from '@gala-chain/api'
-import { useNFTsStore, type NFTSortOption } from '@/stores/nfts'
+import { useNFTsStore, type NFTSortOption, type NFTPageSize } from '@/stores/nfts'
 import { useWalletStore } from '@/stores/wallet'
 import { useNetworkStore } from '@/stores/network'
 import { useGalaChain } from '@/composables/useGalaChain'
@@ -25,15 +25,22 @@ export function useNFTs() {
   const route = useRoute()
 
   // Computed properties from store
-  const nfts = computed(() => nftsStore.sortedNFTs)
+  // `nfts` exposes the paged slice — the view renders this directly.
+  const nfts = computed(() => nftsStore.pagedNFTs)
+  const allFilteredNFTs = computed(() => nftsStore.sortedNFTs)
   const collections = computed(() => nftsStore.collections)
+  const channels = computed(() => nftsStore.availableChannels)
   const selectedCollection = computed(() => nftsStore.selectedCollection)
+  const selectedChannel = computed(() => nftsStore.selectedChannel)
   const isLoading = computed(() => nftsStore.isLoading)
   const error = computed(() => nftsStore.error)
   const sortBy = computed(() => nftsStore.sortBy)
   const hasNFTs = computed(() => nftsStore.hasNFTs)
   const totalNFTCount = computed(() => nftsStore.totalNFTCount)
   const filteredCount = computed(() => nftsStore.filteredCount)
+  const pageSize = computed(() => nftsStore.pageSize)
+  const currentPage = computed(() => nftsStore.currentPage)
+  const totalPages = computed(() => nftsStore.totalPages)
 
   // Wallet connection state
   const isConnected = computed(() => walletStore.connected)
@@ -126,23 +133,44 @@ export function useNFTs() {
   /**
    * Set collection filter and sync with URL
    */
-  function setCollectionFilter(collectionKey: string | null): void {
-    nftsStore.setCollectionFilter(collectionKey)
+  function setCollectionFilter(collection: string | null): void {
+    nftsStore.setCollectionFilter(collection)
 
-    // Update URL query param
-    if (collectionKey) {
-      router.push({ query: { ...route.query, collection: collectionKey } })
+    if (collection) {
+      router.push({ query: { ...route.query, collection } })
     } else {
       const { collection: _, ...rest } = route.query
       router.push({ query: rest })
     }
   }
 
+  /** Set channel filter and sync with URL */
+  function setChannelFilter(channel: string | null): void {
+    nftsStore.setChannelFilter(channel)
+
+    if (channel) {
+      router.push({ query: { ...route.query, channel } })
+    } else {
+      const { channel: _, ...rest } = route.query
+      router.push({ query: rest })
+    }
+  }
+
   /**
-   * Clear collection filter
+   * Clear all filters (collection + channel)
    */
   function clearFilter(): void {
-    setCollectionFilter(null)
+    nftsStore.clearFilter()
+    const { collection: _c, channel: _ch, ...rest } = route.query
+    router.push({ query: rest })
+  }
+
+  function setPageSize(size: NFTPageSize): void {
+    nftsStore.setPageSize(size)
+  }
+
+  function setPage(page: number): void {
+    nftsStore.setPage(page)
   }
 
   /**
@@ -189,9 +217,21 @@ export function useNFTs() {
   watch(
     () => route.query.collection,
     (collectionParam) => {
-      const collectionKey = collectionParam as string | undefined
-      if (collectionKey !== nftsStore.selectedCollection) {
-        nftsStore.setCollectionFilter(collectionKey || null)
+      const collection = collectionParam as string | undefined
+      if (collection !== nftsStore.selectedCollection) {
+        nftsStore.setCollectionFilter(collection || null)
+      }
+    },
+    { immediate: true }
+  )
+
+  // Sync URL channel param to store on mount
+  watch(
+    () => route.query.channel,
+    (channelParam) => {
+      const channel = channelParam as string | undefined
+      if (channel !== nftsStore.selectedChannel) {
+        nftsStore.setChannelFilter(channel || null)
       }
     },
     { immediate: true }
@@ -200,14 +240,20 @@ export function useNFTs() {
   return {
     // State from store
     nfts,
+    allFilteredNFTs,
     collections,
+    channels,
     selectedCollection,
+    selectedChannel,
     isLoading,
     error,
     sortBy,
     hasNFTs,
     totalNFTCount,
     filteredCount,
+    pageSize,
+    currentPage,
+    totalPages,
 
     // Wallet state
     isConnected,
@@ -220,7 +266,10 @@ export function useNFTs() {
     refresh,
     setSort,
     setCollectionFilter,
+    setChannelFilter,
     clearFilter,
+    setPageSize,
+    setPage,
     getNFT,
     clearNFTs,
   }
