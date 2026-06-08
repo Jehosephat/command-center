@@ -9,7 +9,8 @@ describe('NFTGrid', () => {
   // Mock NFT data
   const mockNFTs: NFTDisplay[] = [
     {
-      instanceKey: 'TestCollection|Item|Sword||1',
+      instanceKey: 'asset|TestCollection|Item|Sword||1',
+      channel: 'asset',
       collection: 'TestCollection',
       category: 'Item',
       type: 'Sword',
@@ -26,7 +27,8 @@ describe('NFTGrid', () => {
       canBurn: false,
     },
     {
-      instanceKey: 'TestCollection|Item|Shield||2',
+      instanceKey: 'asset|TestCollection|Item|Shield||2',
+      channel: 'asset',
       collection: 'TestCollection',
       category: 'Item',
       type: 'Shield',

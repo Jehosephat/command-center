@@ -34,11 +34,12 @@ function toNFTDisplay(
   balance: TokenBalanceAny,
   instanceId: BigNumber,
   burnAllowances: TokenAllowance[],
+  channel: string,
   tokenMetadata?: TokenClass
 ): NFTDisplay {
   // Cast to data interface for property access (avoids private property issues)
   const b = balance as unknown as TokenBalanceData
-  const instanceKey = `${b.collection}|${b.category}|${b.type}|${b.additionalKey}|${instanceId.toString()}`
+  const instanceKey = `${channel}|${b.collection}|${b.category}|${b.type}|${b.additionalKey}|${instanceId.toString()}`
 
   // Calculate if NFT is locked or in use
   // TokenHold has instanceId (singular) for the specific instance being held
@@ -71,6 +72,7 @@ function toNFTDisplay(
 
   return {
     instanceKey,
+    channel,
     collection: b.collection,
     category: b.category,
     type: b.type,
@@ -140,10 +142,10 @@ export const useNFTsStore = defineStore('nfts', () => {
   const sortBy = ref<NFTSortOption>('collection-asc')
   const lastFetched = ref<number | null>(null)
 
-  // Raw data from API (for re-processing when allowances change)
+  // Raw data from API (for re-processing when allowances change), keyed by channel.
   // Use TokenBalanceAny to handle both @gala-chain/connect and @gala-chain/api versions
-  let rawBalances: TokenBalanceAny[] = []
-  let rawBalancesWithMetadata: TokenBalanceWithMetadata[] = []
+  let rawBalancesByChannel: Map<string, TokenBalanceAny[]> = new Map()
+  let rawBalancesWithMetadataByChannel: Map<string, TokenBalanceWithMetadata[]> = new Map()
   let rawBurnAllowances: TokenAllowance[] = []
   let usingMetadata = false // Track whether we have metadata
 
@@ -210,24 +212,42 @@ export const useNFTsStore = defineStore('nfts', () => {
   // Actions
 
   /**
-   * Set the raw balances and process into display NFTs
-   * @deprecated Use setBalancesWithMetadata for better display data
+   * Replace all raw balances (single 'asset' channel batch).
+   * @deprecated Use setBalancesWithMetadata for better display data.
    */
   function setBalances(balances: TokenBalanceAny[]): void {
-    rawBalances = balances
-    rawBalancesWithMetadata = []
+    rawBalancesByChannel = new Map([['asset', balances]])
+    rawBalancesWithMetadataByChannel = new Map()
     usingMetadata = false
     processNFTs()
   }
 
   /**
-   * Set the raw balances with metadata and process into display NFTs
+   * Replace all raw balances with metadata (single 'asset' channel batch).
    * This is the preferred method as it includes token class data (name, symbol, image, etc.)
    */
   function setBalancesWithMetadata(balancesWithMetadata: TokenBalanceWithMetadata[]): void {
-    rawBalancesWithMetadata = balancesWithMetadata
-    // Also extract plain balances for backward compatibility
-    rawBalances = balancesWithMetadata.map(bm => bm.balance)
+    rawBalancesWithMetadataByChannel = new Map([['asset', balancesWithMetadata]])
+    rawBalancesByChannel = new Map([
+      ['asset', balancesWithMetadata.map(bm => bm.balance)],
+    ])
+    usingMetadata = true
+    processNFTs()
+  }
+
+  /**
+   * Replace balances with metadata across multiple channels in one go.
+   * Use this for the multi-channel NFT fan-out (asset + game channels).
+   */
+  function setBalancesWithMetadataByChannel(
+    batches: Array<{ channel: string; balances: TokenBalanceWithMetadata[] }>,
+  ): void {
+    rawBalancesWithMetadataByChannel = new Map(
+      batches.map(({ channel, balances }) => [channel, balances]),
+    )
+    rawBalancesByChannel = new Map(
+      batches.map(({ channel, balances }) => [channel, balances.map(bm => bm.balance)]),
+    )
     usingMetadata = true
     processNFTs()
   }
@@ -273,29 +293,27 @@ export const useNFTsStore = defineStore('nfts', () => {
   function processNFTs(): void {
     const nftInstances: NFTDisplay[] = []
 
-    if (usingMetadata && rawBalancesWithMetadata.length > 0) {
-      // Use balances with metadata - filter for NFT tokens
-      const nftBalancesWithMetadata = rawBalancesWithMetadata.filter(bm => hasNonFungibleInstances(bm.balance))
-
-      // Flatten to individual NFT instances with metadata
-      for (const bm of nftBalancesWithMetadata) {
-        for (const instanceId of getInstanceIds(bm.balance)) {
-          const instance = new BigNumber(instanceId?.toString() || '0')
-          if (!instance.isZero()) {
-            nftInstances.push(toNFTDisplay(bm.balance, instance, rawBurnAllowances, bm.token))
+    if (usingMetadata && rawBalancesWithMetadataByChannel.size > 0) {
+      for (const [channel, balances] of rawBalancesWithMetadataByChannel) {
+        const nftBalancesWithMetadata = balances.filter(bm => hasNonFungibleInstances(bm.balance))
+        for (const bm of nftBalancesWithMetadata) {
+          for (const instanceId of getInstanceIds(bm.balance)) {
+            const instance = new BigNumber(instanceId?.toString() || '0')
+            if (!instance.isZero()) {
+              nftInstances.push(toNFTDisplay(bm.balance, instance, rawBurnAllowances, channel, bm.token))
+            }
           }
         }
       }
     } else {
-      // Fallback to plain balances without metadata
-      const nftBalances = rawBalances.filter(b => hasNonFungibleInstances(b))
-
-      // Flatten to individual NFT instances
-      for (const balance of nftBalances) {
-        for (const instanceId of getInstanceIds(balance)) {
-          const instance = new BigNumber(instanceId?.toString() || '0')
-          if (!instance.isZero()) {
-            nftInstances.push(toNFTDisplay(balance, instance, rawBurnAllowances))
+      for (const [channel, balances] of rawBalancesByChannel) {
+        const nftBalances = balances.filter(b => hasNonFungibleInstances(b))
+        for (const balance of nftBalances) {
+          for (const instanceId of getInstanceIds(balance)) {
+            const instance = new BigNumber(instanceId?.toString() || '0')
+            if (!instance.isZero()) {
+              nftInstances.push(toNFTDisplay(balance, instance, rawBurnAllowances, channel))
+            }
           }
         }
       }
@@ -348,8 +366,8 @@ export const useNFTsStore = defineStore('nfts', () => {
     nfts.value = []
     collections.value = []
     selectedCollection.value = null
-    rawBalances = []
-    rawBalancesWithMetadata = []
+    rawBalancesByChannel = new Map()
+    rawBalancesWithMetadataByChannel = new Map()
     rawBurnAllowances = []
     usingMetadata = false
     lastFetched.value = null
@@ -391,6 +409,7 @@ export const useNFTsStore = defineStore('nfts', () => {
     // Actions
     setBalances,
     setBalancesWithMetadata,
+    setBalancesWithMetadataByChannel,
     setAllowances,
     setLoading,
     setError,

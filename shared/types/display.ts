@@ -59,8 +59,10 @@ export interface FungibleTokenDisplay {
  * Display format for an NFT
  */
 export interface NFTDisplay {
-  /** Unique identifier for the NFT instance */
+  /** Unique identifier for the NFT instance (includes channel prefix) */
   instanceKey: string;
+  /** GalaChain channel this NFT lives on (e.g. 'asset', 'mirandus') */
+  channel: string;
   /** Token collection name */
   collection: string;
   /** Token category */

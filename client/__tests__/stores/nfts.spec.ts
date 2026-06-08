@@ -349,9 +349,11 @@ describe('nfts store', () => {
       const store = useNFTsStore()
       store.setBalances(mockNFTBalances)
 
-      const nft = store.getNFTByKey('TestCollection|Item|Sword||1')
+      // setBalances tags balances with the default 'asset' channel
+      const nft = store.getNFTByKey('asset|TestCollection|Item|Sword||1')
       expect(nft).toBeDefined()
       expect(nft?.instance).toBe('1')
+      expect(nft?.channel).toBe('asset')
     })
 
     it('should return undefined for non-existent key', () => {

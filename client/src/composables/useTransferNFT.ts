@@ -8,6 +8,7 @@
 import { ref, computed } from 'vue'
 import { useGalaChain } from '@/composables/useGalaChain'
 import { useWalletStore } from '@/stores/wallet'
+import { useNetworkStore } from '@/stores/network'
 import type { NFTDisplay } from '@shared/types/display'
 import type { TokenInstanceInput } from '@/lib/galachainClient'
 
@@ -22,6 +23,7 @@ export interface TransferNFTResult {
 export function useTransferNFT() {
   const { transferToken, isLoading: galaChainLoading, error: galaChainError } = useGalaChain()
   const walletStore = useWalletStore()
+  const networkStore = useNetworkStore()
 
   // Local state for transfer operation
   const isTransferring = ref(false)
@@ -97,8 +99,11 @@ export function useTransferNFT() {
       // NFT transfers are always quantity 1
       const quantity = '1'
 
+      // Route the transfer through the NFT's source channel
+      const gatewayUrl = networkStore.tokenContractUrlFor(nft.channel)
+
       // Execute the transfer via GalaChain
-      const result = await transferToken(recipientAddress, tokenInstance, quantity)
+      const result = await transferToken(recipientAddress, tokenInstance, quantity, gatewayUrl)
 
       if (result.success) {
         return { success: true }

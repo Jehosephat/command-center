@@ -54,7 +54,8 @@ export const mockFungibleBalance: TokenBalance = {
 // Mock NFTDisplay objects (UI display format)
 export const mockNFTDisplays: NFTDisplay[] = [
   {
-    instanceKey: 'SpiderTanks|Tanks|LightTank||1',
+    instanceKey: 'asset|SpiderTanks|Tanks|LightTank||1',
+    channel: 'asset',
     collection: 'SpiderTanks',
     category: 'Tanks',
     type: 'LightTank',
@@ -71,7 +72,8 @@ export const mockNFTDisplays: NFTDisplay[] = [
     canBurn: false,
   },
   {
-    instanceKey: 'SpiderTanks|Tanks|LightTank||2',
+    instanceKey: 'asset|SpiderTanks|Tanks|LightTank||2',
+    channel: 'asset',
     collection: 'SpiderTanks',
     category: 'Tanks',
     type: 'LightTank',
@@ -88,7 +90,8 @@ export const mockNFTDisplays: NFTDisplay[] = [
     canBurn: false,
   },
   {
-    instanceKey: 'SpiderTanks|Tanks|HeavyTank||100',
+    instanceKey: 'asset|SpiderTanks|Tanks|HeavyTank||100',
+    channel: 'asset',
     collection: 'SpiderTanks',
     category: 'Tanks',
     type: 'HeavyTank',
@@ -105,7 +108,8 @@ export const mockNFTDisplays: NFTDisplay[] = [
     canBurn: false,
   },
   {
-    instanceKey: 'TownStar|Buildings|Windmill||500',
+    instanceKey: 'asset|TownStar|Buildings|Windmill||500',
+    channel: 'asset',
     collection: 'TownStar',
     category: 'Buildings',
     type: 'Windmill',

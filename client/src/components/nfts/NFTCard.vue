@@ -92,6 +92,16 @@ const statusBadge = computed(() => {
         {{ nft.collection }}
       </p>
 
+      <!-- Channel Badge -->
+      <div class="mt-1">
+        <span
+          class="inline-block px-2 py-0.5 text-xs font-medium rounded-full bg-gala-primary/10 text-gala-primary dark:bg-gala-primary/20"
+          :title="`Channel: ${nft.channel}`"
+        >
+          {{ nft.channel }}
+        </span>
+      </div>
+
       <!-- Instance ID -->
       <div class="mt-2 flex items-center gap-2">
         <span class="text-xs text-gray-400 dark:text-gray-500">ID:</span>

@@ -21,7 +21,8 @@ vi.mock('@/composables/useGalaChain', () => ({
 // Create mock NFT
 function createMockNFT(overrides: Partial<NFTDisplay> = {}): NFTDisplay {
   return {
-    instanceKey: 'TEST|Category|Type||123',
+    instanceKey: 'asset|TEST|Category|Type||123',
+    channel: 'asset',
     collection: 'TEST',
     category: 'Category',
     type: 'Type',
@@ -207,19 +208,22 @@ describe('useBurnNFT', () => {
 
       await executeBurn(nft)
 
-      // NFT burn always has quantity '1'
-      expect(mockBurnTokens).toHaveBeenCalledWith([
-        {
-          tokenInstanceKey: expect.objectContaining({
-            collection: 'TEST',
-            category: 'Category',
-            type: 'Type',
-            additionalKey: '',
-            instance: '123',
-          }),
-          quantity: '1',
-        },
-      ])
+      // NFT burn always has quantity '1', routed through NFT's channel gateway
+      expect(mockBurnTokens).toHaveBeenCalledWith(
+        [
+          {
+            tokenInstanceKey: expect.objectContaining({
+              collection: 'TEST',
+              category: 'Category',
+              type: 'Type',
+              additionalKey: '',
+              instance: '123',
+            }),
+            quantity: '1',
+          },
+        ],
+        expect.stringContaining('/api/asset/token-contract'),
+      )
     })
 
     it('returns success result on successful burn', async () => {

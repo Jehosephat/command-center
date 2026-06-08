@@ -10,6 +10,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { AllowanceType } from '@gala-chain/api'
 import { useNFTsStore, type NFTSortOption } from '@/stores/nfts'
 import { useWalletStore } from '@/stores/wallet'
+import { useNetworkStore } from '@/stores/network'
 import { useGalaChain } from '@/composables/useGalaChain'
 
 /**
@@ -18,6 +19,7 @@ import { useGalaChain } from '@/composables/useGalaChain'
 export function useNFTs() {
   const nftsStore = useNFTsStore()
   const walletStore = useWalletStore()
+  const networkStore = useNetworkStore()
   const galaChain = useGalaChain()
   const router = useRouter()
   const route = useRoute()
@@ -39,6 +41,8 @@ export function useNFTs() {
 
   /**
    * Fetch NFT balances from GalaChain with metadata (name, symbol, image, etc.)
+   * Fans out to every NFT channel concurrently and tags each balance batch with its channel.
+   * Channels that fail are logged and skipped — partial results still render.
    */
   async function fetchNFTs(): Promise<void> {
     if (!walletStore.connected || !walletStore.address) {
@@ -49,14 +53,21 @@ export function useNFTs() {
     nftsStore.setError(null)
 
     try {
-      // Use getBalancesWithMetadata to get token class info (name, symbol, image)
-      const result = await galaChain.getBalancesWithMetadata(walletStore.address!)
+      const owner = walletStore.address!
+      const channels = networkStore.nftChannelUrls
 
-      if (result.success) {
-        nftsStore.setBalancesWithMetadata(result.data)
-      } else {
-        nftsStore.setError(result.error)
-      }
+      const results = await Promise.all(
+        channels.map(async ({ channel, url }) => {
+          const result = await galaChain.getBalancesWithMetadata(owner, undefined, url)
+          if (!result.success) {
+            console.warn(`[NFTs] Failed to fetch from channel "${channel}":`, result.error)
+            return { channel, balances: [] }
+          }
+          return { channel, balances: result.data }
+        }),
+      )
+
+      nftsStore.setBalancesWithMetadataByChannel(results)
     } catch (err) {
       nftsStore.setError(
         err instanceof Error ? err.message : 'Failed to fetch NFTs'

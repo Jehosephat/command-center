@@ -79,9 +79,12 @@ interface GalaChainResponse<T> {
 /**
  * POST a payload to a GalaChain method and parse the response.
  * Used by both unsigned reads and signed writes.
+ *
+ * If `gatewayUrl` is omitted, uses the current network's default token-contract URL
+ * (asset channel). Pass a channel-specific URL to target a different channel.
  */
-async function post<T>(method: string, payload: object): Promise<T> {
-  const url = `${getTokenApiUrl()}/${method}`
+async function post<T>(method: string, payload: object, gatewayUrl?: string): Promise<T> {
+  const url = `${gatewayUrl ?? getTokenApiUrl()}/${method}`
 
   logRequest(method, payload)
 
@@ -152,9 +155,14 @@ async function post<T>(method: string, payload: object): Promise<T> {
  * Sign a DTO with the wallet, then POST to the gateway.
  * This bypasses the SDK's submit() pipeline entirely.
  */
-async function signAndPost<T>(client: BrowserConnectClient, method: string, dto: object): Promise<T> {
+async function signAndPost<T>(
+  client: BrowserConnectClient,
+  method: string,
+  dto: object,
+  gatewayUrl?: string,
+): Promise<T> {
   const signedDto = await client.sign(method, dto)
-  return post<T>(method, signedDto)
+  return post<T>(method, signedDto, gatewayUrl)
 }
 
 // ============================================================================
@@ -181,6 +189,7 @@ export async function fetchBalances(
 
 /**
  * Fetch token balances with metadata (includes token class info like name, symbol, image)
+ * Pass `gatewayUrl` to target a specific channel (defaults to asset channel).
  */
 export async function fetchBalancesWithMetadata(
   owner: string,
@@ -189,11 +198,13 @@ export async function fetchBalancesWithMetadata(
     category?: string
     type?: string
     additionalKey?: string
-  }
+  },
+  gatewayUrl?: string,
 ): Promise<TokenBalanceWithMetadata[]> {
   const response = await post<FetchBalancesWithTokenMetadataResponse>(
     'FetchBalancesWithTokenMetadata',
-    { owner: owner as UserRef, ...filters }
+    { owner: owner as UserRef, ...filters },
+    gatewayUrl,
   )
   return response.results || []
 }
@@ -229,14 +240,16 @@ export async function fetchAllowances(
 // ============================================================================
 
 /**
- * Transfer tokens to another address
+ * Transfer tokens to another address.
+ * Pass `gatewayUrl` to route the transfer to a specific channel.
  */
 export async function transfer(
   client: BrowserConnectClient,
   from: string,
   to: string,
   tokenInstance: TokenInstanceInput,
-  quantity: BigNumber | string | number
+  quantity: BigNumber | string | number,
+  gatewayUrl?: string,
 ): Promise<TokenBalance[]> {
   const dto = {
     from: from as UserRef,
@@ -252,7 +265,7 @@ export async function transfer(
     uniqueKey: generateUniqueKey(),
   }
 
-  return signAndPost<TokenBalance[]>(client, 'TransferToken', dto)
+  return signAndPost<TokenBalance[]>(client, 'TransferToken', dto, gatewayUrl)
 }
 
 /**
@@ -282,14 +295,16 @@ export async function mint(
 }
 
 /**
- * Burn tokens (requires burn authority or ownership)
+ * Burn tokens (requires burn authority or ownership).
+ * Pass `gatewayUrl` to route the burn to a specific channel.
  */
 export async function burn(
   client: BrowserConnectClient,
   tokenInstances: Array<{
     tokenInstanceKey: TokenInstanceInput
     quantity: BigNumber | string | number
-  }>
+  }>,
+  gatewayUrl?: string,
 ): Promise<unknown[]> {
   const dto = {
     tokenInstances: tokenInstances.map(item => ({
@@ -305,7 +320,7 @@ export async function burn(
     uniqueKey: generateUniqueKey(),
   }
 
-  return signAndPost<unknown[]>(client, 'BurnTokens', dto)
+  return signAndPost<unknown[]>(client, 'BurnTokens', dto, gatewayUrl)
 }
 
 /**

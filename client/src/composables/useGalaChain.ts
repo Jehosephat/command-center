@@ -138,6 +138,7 @@ export function useGalaChain() {
    * This is a read-only operation that does NOT require wallet connection
    * @param owner - Owner address to fetch balances for (required)
    * @param filters - Optional filters for collection, category, type, additionalKey
+   * @param gatewayUrl - Optional channel-specific token-contract URL (defaults to asset channel)
    */
   async function getBalancesWithMetadata(
     owner: string,
@@ -146,13 +147,14 @@ export function useGalaChain() {
       category?: string
       type?: string
       additionalKey?: string
-    }
+    },
+    gatewayUrl?: string,
   ): Promise<OperationResult<TokenBalanceWithMetadata[]>> {
     return executeOperation(async () => {
       if (!owner) {
         throw new GalaChainError('Owner address is required.', 'NO_ADDRESS')
       }
-      return fetchBalancesWithMetadata(owner, filters)
+      return fetchBalancesWithMetadata(owner, filters, gatewayUrl)
     }, 'getBalancesWithMetadata')
   }
 
@@ -190,11 +192,13 @@ export function useGalaChain() {
    * @param to - Recipient address
    * @param tokenInstance - Token to transfer
    * @param quantity - Amount to transfer
+   * @param gatewayUrl - Optional channel-specific token-contract URL (defaults to asset channel)
    */
   async function transferToken(
     to: string,
     tokenInstance: TokenInstanceInput,
-    quantity: BigNumber | string | number
+    quantity: BigNumber | string | number,
+    gatewayUrl?: string,
   ): Promise<OperationResult<TokenBalance[]>> {
     return executeOperation(async () => {
       const client = requireClient()
@@ -202,7 +206,7 @@ export function useGalaChain() {
       if (!from) {
         throw new GalaChainError('No wallet address available.', 'NO_ADDRESS')
       }
-      return transfer(client, from, to, tokenInstance, quantity)
+      return transfer(client, from, to, tokenInstance, quantity, gatewayUrl)
     }, 'transferToken')
   }
 
@@ -237,16 +241,18 @@ export function useGalaChain() {
    * Burn tokens (requires burn authority or ownership)
    * Requires wallet connection for signing
    * @param tokenInstances - Array of tokens and quantities to burn
+   * @param gatewayUrl - Optional channel-specific token-contract URL (defaults to asset channel)
    */
   async function burnTokens(
     tokenInstances: Array<{
       tokenInstanceKey: TokenInstanceInput
       quantity: BigNumber | string | number
-    }>
+    }>,
+    gatewayUrl?: string,
   ): Promise<OperationResult<unknown[]>> {
     return executeOperation(async () => {
       const client = requireClient()
-      return burn(client, tokenInstances)
+      return burn(client, tokenInstances, gatewayUrl)
     }, 'burnTokens')
   }
 

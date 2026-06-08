@@ -6,7 +6,8 @@ import type { NFTDisplay } from '@shared/types/display'
 describe('NFTCard', () => {
   // Mock NFT data
   const mockNFT: NFTDisplay = {
-    instanceKey: 'TestCollection|Item|Sword||1',
+    instanceKey: 'asset|TestCollection|Item|Sword||1',
+    channel: 'asset',
     collection: 'TestCollection',
     category: 'Item',
     type: 'Sword',

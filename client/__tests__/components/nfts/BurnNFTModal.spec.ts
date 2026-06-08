@@ -28,7 +28,8 @@ vi.mock('@/composables/useBurnNFT', () => ({
 // Create mock NFT
 function createMockNFT(overrides: Partial<NFTDisplay> = {}): NFTDisplay {
   return {
-    instanceKey: 'TEST|Category|Type||123',
+    instanceKey: 'asset|TEST|Category|Type||123',
+    channel: 'asset',
     collection: 'TEST',
     category: 'Category',
     type: 'Type',

@@ -8,6 +8,7 @@
 import { ref, computed } from 'vue'
 import { useGalaChain } from '@/composables/useGalaChain'
 import { useWalletStore } from '@/stores/wallet'
+import { useNetworkStore } from '@/stores/network'
 import type { NFTDisplay } from '@shared/types/display'
 import type { TokenInstanceInput } from '@/lib/galachainClient'
 
@@ -22,6 +23,7 @@ export interface BurnNFTResult {
 export function useBurnNFT() {
   const { burnTokens, isLoading: galaChainLoading, error: galaChainError } = useGalaChain()
   const walletStore = useWalletStore()
+  const networkStore = useNetworkStore()
 
   // Local state for burn operation
   const isBurning = ref(false)
@@ -106,14 +108,20 @@ export function useBurnNFT() {
       // Build token instance for burn
       const tokenInstance = buildTokenInstance(nft)
 
+      // Route the burn through the NFT's source channel
+      const gatewayUrl = networkStore.tokenContractUrlFor(nft.channel)
+
       // Execute the burn via GalaChain
       // NFT burn always has quantity '1' for a single NFT
-      const result = await burnTokens([
-        {
-          tokenInstanceKey: tokenInstance,
-          quantity: '1',
-        },
-      ])
+      const result = await burnTokens(
+        [
+          {
+            tokenInstanceKey: tokenInstance,
+            quantity: '1',
+          },
+        ],
+        gatewayUrl,
+      )
 
       if (result.success) {
         return { success: true }

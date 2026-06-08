@@ -21,7 +21,8 @@ vi.mock('@/stores/wallet', () => ({
 }))
 
 const mockNFT: NFTDisplay = {
-  instanceKey: 'TestCollection|Category|Type|Key|123',
+  instanceKey: 'asset|TestCollection|Category|Type|Key|123',
+  channel: 'asset',
   collection: 'TestCollection',
   category: 'Category',
   type: 'Type',
