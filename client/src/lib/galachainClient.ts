@@ -37,13 +37,26 @@ export interface TokenInstanceInput {
 }
 
 /**
- * Generate a unique key for submit DTOs
- * This ensures each transaction is unique and prevents replay attacks
+ * Generate a unique key for submit DTOs.
+ * Ensures each transaction is unique and prevents replay attacks.
+ *
+ * Format: UUID v4 — 36 chars of hex + hyphens, e.g.
+ *   `7c1c8a44-1a3a-4f2b-9d22-2e2a8b3c4d5e`
+ *
+ * UUID v4 carries 122 bits of randomness (well above the chain's collision
+ * threshold) and avoids the `+`/`/`/`=` symbols that base64 produces, which
+ * makes log lines and signed payloads easier to scan.
+ *
+ * Falls back to hex-encoded random bytes if randomUUID is unavailable
+ * (very old runtimes).
  */
-function generateUniqueKey(): string {
-  const randomBytes = new Uint8Array(32)
+export function generateUniqueKey(): string {
+  if (typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  const randomBytes = new Uint8Array(16)
   crypto.getRandomValues(randomBytes)
-  return btoa(String.fromCharCode(...randomBytes))
+  return Array.from(randomBytes, b => b.toString(16).padStart(2, '0')).join('')
 }
 
 /**

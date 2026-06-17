@@ -41,10 +41,12 @@ export class GalaChainSignerService implements OnModuleInit {
   }
 
   /**
-   * Generate a unique key for GalaChain DTOs (prevents replay attacks)
+   * Generate a unique key for GalaChain DTOs (prevents replay attacks).
+   * Returns a UUID v4 (36 chars, hex + hyphens only) for legibility in logs
+   * and signed payloads.
    */
   generateUniqueKey(): string {
-    return Buffer.from(randomUUID().replace(/-/g, ''), 'hex').toString('base64');
+    return randomUUID();
   }
 
   /**

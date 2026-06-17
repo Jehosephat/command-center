@@ -2,6 +2,7 @@ import { ref } from 'vue'
 import { useWalletStore } from '@/stores/wallet'
 import { useNetworkStore } from '@/stores/network'
 import * as api from '@/lib/marketplaceApi'
+import { generateUniqueKey } from '@/lib/galachainClient'
 import type { MarketplaceListing, MarketplacePurchase, EnrichedListing } from '@shared/types/marketplace'
 import BigNumber from 'bignumber.js'
 
@@ -70,7 +71,7 @@ export function usePurchase() {
           instance: '0',
         },
         quantity: totalCost,
-        uniqueKey: btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32)))),
+        uniqueKey: generateUniqueKey(),
       }
 
       // Sign the transfer with MetaMask
