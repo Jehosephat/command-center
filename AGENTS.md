@@ -125,6 +125,8 @@ quantity: amount.toString(),
 
 Every write DTO needs a `uniqueKey` field (random base64 string) to prevent replay attacks.
 
+Every signed DTO also needs a `dtoOperation` field naming the target operation as `{channelId}_{chaincodeId}_{Contract}:{Method}`, e.g. `asset-channel_basic-asset_GalaChainToken:TransferToken`. The chaincode rejects signed DTOs where it is missing or doesn't match the running method, so it must be set **before** signing (`getPayloadToSign()` includes it in the signed payload). Build it with `dtoOperationFor(gatewayUrl, method)` from `shared/dtoOperation.ts`; `signAndPost()` does this automatically. Server-side SDK DTOs use `.withOperation(...)` before `.signed(...)`. Unsigned read DTOs may omit it.
+
 ### Wallet Connection & Signing
 
 Wallet state lives in `client/src/stores/wallet.ts` (Pinia store). The `BrowserConnectClient` instance is created on `connect()` and accessed via `getClient()`.
@@ -165,6 +167,7 @@ const dto = {
   to: 'eth|def456...',
   quantity: '10',  // string, not BigNumber
   uniqueKey: generateUniqueKey(),
+  dtoOperation: dtoOperationFor(gatewayUrl, 'TransferToken'),  // must be set before signing
 }
 
 // 2. Sign with the overridden client.sign() - triggers MetaMask popup
@@ -204,7 +207,9 @@ MetaMask produces compact 65-byte Ethereum signatures (r + s + v) as 132-charact
 
 4. **Always include `uniqueKey` in write DTOs.** Without it, transactions may be rejected as replays.
 
-5. **The `signatures` import must come from `@gala-chain/api`**, not `@gala-chain/connect`. It provides `getPayloadToSign()` which is used in the sign override.
+5. **Always set `dtoOperation` on signed DTOs before signing.** Adding it after signing leaves it outside the signature and the chaincode rejects the call.
+
+6. **The `signatures` import must come from `@gala-chain/api`**, not `@gala-chain/connect`. It provides `getPayloadToSign()` which is used in the sign override.
 
 ### Reference Implementation
 

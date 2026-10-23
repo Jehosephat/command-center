@@ -15,6 +15,7 @@ import type { TokenAllowance, FetchAllowancesResponse, UserRef, TokenBalanceWith
 import BigNumber from 'bignumber.js'
 import { useNetworkStore } from '@/stores/network'
 import { GalaChainError, logError } from './galachainErrors'
+import { dtoOperationFor } from '@shared/dtoOperation'
 
 /**
  * Get the token API URL based on selected network
@@ -167,6 +168,9 @@ async function post<T>(method: string, payload: object, gatewayUrl?: string): Pr
 /**
  * Sign a DTO with the wallet, then POST to the gateway.
  * This bypasses the SDK's submit() pipeline entirely.
+ *
+ * Sets `dtoOperation` (channel_chaincode_Contract:Method) before signing so the
+ * signature covers it; the chaincode rejects signed DTOs without a matching one.
  */
 async function signAndPost<T>(
   client: BrowserConnectClient,
@@ -174,8 +178,9 @@ async function signAndPost<T>(
   dto: object,
   gatewayUrl?: string,
 ): Promise<T> {
-  const signedDto = await client.sign(method, dto)
-  return post<T>(method, signedDto, gatewayUrl)
+  const url = gatewayUrl ?? getTokenApiUrl()
+  const signedDto = await client.sign(method, { ...dto, dtoOperation: dtoOperationFor(url, method) })
+  return post<T>(method, signedDto, url)
 }
 
 // ============================================================================

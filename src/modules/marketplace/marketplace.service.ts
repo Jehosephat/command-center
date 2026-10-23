@@ -16,6 +16,7 @@ import { UpdateListingDto } from './dto/update-listing.dto';
 import { PurchaseDto } from './dto/purchase.dto';
 import { ListingQueryDto } from './dto/listing-query.dto';
 import { GalaChainGatewayService } from '../galachain/galachain-gateway.service';
+import { dtoOperationFor } from '../../../shared/dtoOperation';
 
 @Injectable()
 export class MarketplaceService {
@@ -154,6 +155,12 @@ export class MarketplaceService {
 
     if (String(transferDto.to).toLowerCase() !== expectedTo.toLowerCase()) {
       throw new BadRequestException(`Transfer recipient must be ${expectedTo}`);
+    }
+
+    // The chaincode rejects signed DTOs whose dtoOperation doesn't match the method
+    const expectedOperation = dtoOperationFor(dto.gatewayUrl, 'TransferToken');
+    if (transferDto.dtoOperation !== expectedOperation) {
+      throw new BadRequestException(`Transfer dtoOperation must be ${expectedOperation}`);
     }
 
     // Validate the transfer amount matches

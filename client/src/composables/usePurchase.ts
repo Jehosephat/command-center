@@ -3,6 +3,7 @@ import { useWalletStore } from '@/stores/wallet'
 import { useNetworkStore } from '@/stores/network'
 import * as api from '@/lib/marketplaceApi'
 import { generateUniqueKey } from '@/lib/galachainClient'
+import { dtoOperationFor } from '@shared/dtoOperation'
 import type { MarketplaceListing, MarketplacePurchase, EnrichedListing } from '@shared/types/marketplace'
 import BigNumber from 'bignumber.js'
 
@@ -72,6 +73,7 @@ export function usePurchase() {
         },
         quantity: totalCost,
         uniqueKey: generateUniqueKey(),
+        dtoOperation: dtoOperationFor(networkStore.gatewayUrl, 'TransferToken'),
       }
 
       // Sign the transfer with MetaMask

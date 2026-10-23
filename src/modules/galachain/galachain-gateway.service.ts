@@ -6,6 +6,7 @@ import {
   TransferTokenDto,
 } from '@gala-chain/api';
 import BigNumber from 'bignumber.js';
+import { dtoOperationFor } from '../../../shared/dtoOperation';
 
 interface GalaChainResponse<T = unknown> {
   Status: number;
@@ -72,11 +73,14 @@ export class GalaChainGatewayService {
     quantity: string,
     gatewayUrl?: string,
   ): Promise<unknown[]> {
-    const signedDto = await createValidSubmitDTO(MintTokenDto, {
+    const dto = await createValidSubmitDTO(MintTokenDto, {
       tokenClass: tokenClass as any,
       owner: owner as any,
       quantity: new BigNumber(quantity),
-    }).signed(this.fulfillerPrivateKey);
+    });
+    const signedDto = dto
+      .withOperation(dtoOperationFor(gatewayUrl || this.gatewayUrl, 'MintToken'))
+      .signed(this.fulfillerPrivateKey);
 
     return this.submitSignedDto<unknown[]>('MintToken', signedDto, gatewayUrl);
   }
@@ -97,7 +101,7 @@ export class GalaChainGatewayService {
     quantity: string,
     gatewayUrl?: string,
   ): Promise<unknown> {
-    const signedDto = await createValidSubmitDTO(TransferTokenDto, {
+    const dto = await createValidSubmitDTO(TransferTokenDto, {
       from: this.fulfillerAddress as any,
       to: to as any,
       tokenInstance: {
@@ -108,7 +112,10 @@ export class GalaChainGatewayService {
         instance: new BigNumber(tokenInstance.instance),
       } as any,
       quantity: new BigNumber(quantity),
-    }).signed(this.fulfillerPrivateKey);
+    });
+    const signedDto = dto
+      .withOperation(dtoOperationFor(gatewayUrl || this.gatewayUrl, 'TransferToken'))
+      .signed(this.fulfillerPrivateKey);
 
     return this.submitSignedDto('TransferToken', signedDto, gatewayUrl);
   }

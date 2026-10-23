@@ -206,6 +206,7 @@ describe('MarketplaceService', () => {
       },
       quantity: '10',
       uniqueKey: 'test-key',
+      dtoOperation: 'asset-channel_basic-asset_GalaChainToken:TransferToken',
       signature: 'test-sig',
     };
 
