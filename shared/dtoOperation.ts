@@ -19,12 +19,32 @@ const CONTRACT_NAMES: Record<string, string> = {
 }
 
 /**
- * Gateway channel path segment -> Fabric channel/chaincode IDs.
- * Channels not listed fall back to `{channel}-channel` / `basic-{channel}`,
- * the same convention the asset channel follows.
+ * Gateway channel path segment -> Fabric channel/chaincode IDs, from the
+ * gateway's channel config. Only asset and spidertanks differ from their path;
+ * every other channel uses its path as both channel and chaincode name.
  */
+const SAME_NAME_CHANNELS = [
+  'championsarena',
+  'echoesofempire',
+  'eternalparadox',
+  'galafilm',
+  'lastexpedition',
+  'legacy',
+  'legendsreborn',
+  'mirandus',
+  'music',
+  'node',
+  'pokergo',
+  'superior',
+  'thewalkingdeadempires',
+  'townstar',
+  'vox',
+]
+
 const CHANNEL_IDS: Record<string, { channelId: string; chaincodeId: string }> = {
   asset: { channelId: 'asset-channel', chaincodeId: 'basic-asset' },
+  spidertanks: { channelId: 'spidertanks-channel', chaincodeId: 'spidertanks' },
+  ...Object.fromEntries(SAME_NAME_CHANNELS.map(c => [c, { channelId: c, chaincodeId: c }])),
 }
 
 export function dtoOperationFor(gatewayUrl: string, method: string): string {
@@ -39,10 +59,11 @@ export function dtoOperationFor(gatewayUrl: string, method: string): string {
     throw new Error(`Unknown GalaChain contract path "${contractPath}" in ${gatewayUrl}`)
   }
 
-  const { channelId, chaincodeId } = CHANNEL_IDS[channel] ?? {
-    channelId: `${channel}-channel`,
-    chaincodeId: `basic-${channel}`,
+  const ids = CHANNEL_IDS[channel]
+  if (!ids) {
+    throw new Error(`Unknown GalaChain channel "${channel}" in ${gatewayUrl}`)
   }
+  const { channelId, chaincodeId } = ids
 
   return `${channelId}_${chaincodeId}_${contractName}:${method}`
 }

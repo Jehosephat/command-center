@@ -13,10 +13,22 @@ describe('dtoOperationFor', () => {
     ).toBe('asset-channel_basic-asset_GalaChainToken:MintToken');
   });
 
-  it('falls back to the channel naming convention for other channels', () => {
+  it('uses the channel name as channel and chaincode for game channels', () => {
     expect(
       dtoOperationFor('https://gateway-mainnet.galachain.com/api/mirandus/token-contract', 'BurnTokens'),
-    ).toBe('mirandus-channel_basic-mirandus_GalaChainToken:BurnTokens');
+    ).toBe('mirandus_mirandus_GalaChainToken:BurnTokens');
+  });
+
+  it('maps spidertanks to its -channel suffixed channel', () => {
+    expect(
+      dtoOperationFor('https://gateway-mainnet.galachain.com/api/spidertanks/token-contract', 'TransferToken'),
+    ).toBe('spidertanks-channel_spidertanks_GalaChainToken:TransferToken');
+  });
+
+  it('throws on an unknown channel', () => {
+    expect(() =>
+      dtoOperationFor('https://gateway-mainnet.galachain.com/api/nope/token-contract', 'TransferToken'),
+    ).toThrow();
   });
 
   it('throws on an unrecognized URL', () => {
